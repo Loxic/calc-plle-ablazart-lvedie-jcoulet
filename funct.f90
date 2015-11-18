@@ -19,7 +19,29 @@ module patate
           F(Nx*(j-1)+i)=fonction_f(i*dx,j*dy,dx*(Nx+1),dy*(Ny+1),time,nb_probleme)
        end do
     end do
-    !Prise en compte des CL
+
+!!!! Division du maillage : définir sur quel domaine boucle chaque proc (charge 1D, 2D..)
+
+! routine partionnement maillage
+! => maillage de taille Nx . Ny 
+! => sous maillage de taille Mx . My 
+! => réecriture : distribution du vecteur U et F sur le maillage
+
+! Petite routine de réecriture globale à faire pour obtenir le vecteur U final
+
+
+!!!!! Prise en compte des CL sur un sous maillage
+
+! les Mx première coordonnées appelle leur copain de GAUCHE <-> le copain passe ses Mx dernières
+! les Mx dernière coordonnées appelle leur copain de DROITE <-> le copain passe ses Mx premières
+! chaque '1 + (i-1)*Mx' pour i allant de 1 à My appelle son voisin du BAS <-> le voison passe chaque 'i*Mx' pour i allant de 1 à My
+! chaque 'i*Mx' pour i allant de 1 à Ny prend appelle son du HAUT<-> le voison passe chaque 'i*Mx' pour i allant de 1 à My
+
+! Critère de détection des bords
+! Remplacer voisin par g(en 0/en 1) et copain par h(en 0 /en 1)
+
+! Sinon, on verra pour le recouvrement..
+
     do j=1,Ny
        F(Nx*(j-1)+1) = F(Nx*(j-1)+1) + (D/dx**2)*fonction_h(0.0_wp,j*dy,nb_probleme)
        F(Nx*(j-1)+Nx) = F(Nx*(j-1)+Nx) + (D/dx**2)*fonction_h((Nx+1)*dx,j*dy,nb_probleme)
@@ -102,7 +124,6 @@ module patate
     do i = 1, Nx
        do j = 1, Ny
           k = Nx*(j-1) + i
-
           ! bloc M
           AX(k) = (1+2*D*Dt*(1.0_wp/dx**2 + 1.0_wp/dy**2))*X(k)
           if (i>1) then
