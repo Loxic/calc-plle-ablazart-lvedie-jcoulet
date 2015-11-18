@@ -5,26 +5,55 @@ module solve
 
 contains
 
-  subroutine Gauss_seidel()
+  function norme_2(V)
     implicit none
-    !Insert code here
-    
-    end subroutine Gauss_seidel
+    real*8,dimension(:),intent(in)::V
+    real*8::norme_2
+    norme_2=sqrt(dot_product(V,V))
+  end function norme_2
+
+  subroutine GaussSeidel(A,b,x,tol)
+    !!Méthode itérative : X doit être donné avec une valeur initiale !!
+    implicit none
+    ! E/S
+    real*8,dimension(:,:),intent(in)::A
+    real*8,dimension(:),intent(in)::B
+    real*8,dimension(:),intent(inout)::X
+    ! Locales
+    real*8,dimension(size(X))::X_next
+    real,intent(in)::tol
+    integer::i,j
+
+    do while (norme_2(matmul(A,X)-B) > tol*norme_2(B))  !Condition convergence
+      do i=1,size(X)
+        X_next(i) = B(i)
+        do j=1,i-1
+          X_next(i) = X_next(i) - A(i,j) * X_next(j)
+        end do
+        do j=i+1,size(X)
+          X_next(i) = X_next(i) - A(i,j)*X(j)
+        end do
+        X_next(i) = X_next(i) / A(i,i)
+      end do
+      X=X_next
+    end do
+  end subroutine GaussSeidel
 
 
   subroutine Grad_conj_implicit(K,B,eps,Nmax,Nx,Ny,dx,dy,D0,Dt)
+    !! Gradient implicite utilisé l'an dernier. La matrice n'est pas stockées !!
     implicit none
     !Entrées/sorties
-    real(wp),dimension(:),intent(in)::B
-    real(wp),dimension(:),intent(inout)::K
-    real(wp),intent(in)::eps
+    real*8,dimension(:),intent(in)::B
+    real*8,dimension(:),intent(inout)::K
+    real*8,intent(in)::eps
     integer,intent(in)::Nmax
     !Pour la multiplication
     integer,intent(in)::Nx,Ny
-    real(wp),intent(in)::dx,dy,D0,Dt
+    real*8,intent(in)::dx,dy,D0,Dt
     !Locales
-    real(wp),dimension(size(K))::R,R_next,D,W
-    real(wp)::alpha,beta
+    real*8,dimension(size(K))::R,R_next,D,W
+    real*8::alpha,beta
     integer::l,i
 
     !R=matmul(A,K)-B
