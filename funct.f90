@@ -27,20 +27,26 @@ module patate
 ! => sous maillage de taille Mx . My 
 ! => réecriture : distribution du vecteur U et F sur le maillage
 
-! Petite routine de réecriture globale à faire pour obtenir le vecteur U final
+! Petite routine de réecriture globale à faire pour obtenir le vecteur U final ?
+! Ou alors, multiplot gnuplot
 
 
 !!!!! Prise en compte des CL sur un sous maillage
 
-! les Mx première coordonnées appelle leur copain de GAUCHE <-> le copain passe ses Mx dernières
-! les Mx dernière coordonnées appelle leur copain de DROITE <-> le copain passe ses Mx premières
-! chaque '1 + (i-1)*Mx' pour i allant de 1 à My appelle son voisin du BAS <-> le voison passe chaque 'i*Mx' pour i allant de 1 à My
-! chaque 'i*Mx' pour i allant de 1 à Ny prend appelle son du HAUT<-> le voison passe chaque 'i*Mx' pour i allant de 1 à My
+! les Mx première coordonnées appellent le copain de GAUCHE <-> le copain passe ses Mx dernières
+! les Mx dernière coordonnées appellent le copain de DROITE <-> le copain passe ses Mx premières
+! chaque '1 + (i-1)*Mx' pour i allant de 1 à My appelle le voisin du BAS <-> le voison passe chaque 'i*Mx' pour i allant de 1 à My
+! chaque 'i*Mx' pour i allant de 1 à Ny prend appelle le voisin du HAUT<-> le voison passe chaque 'i*Mx' pour i allant de 1 à My
 
 ! Critère de détection des bords
 ! Remplacer voisin par g(en 0/en 1) et copain par h(en 0 /en 1)
 
-! Sinon, on verra pour le recouvrement..
+
+
+!!!!!! Recouvrement
+
+! On élargit les domaines => Nouvelle routine de partionnement
+! 'CL' plus larges : au lieu de prendre juste l'indice du bord à côté, on en prend une tranche, et on l'inverse
 
     do j=1,Ny
        F(Nx*(j-1)+1) = F(Nx*(j-1)+1) + (D/dx**2)*fonction_h(0.0_wp,j*dy,nb_probleme)
