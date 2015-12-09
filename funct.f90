@@ -5,6 +5,7 @@ module patate
 
   contains
   subroutine Get_F(F,Nx,Ny,dx,dy,D,Dt,time,nb_probleme)
+ 
     implicit none
     real(wp),dimension(:),allocatable,intent(out)::F
     integer,intent(in)::Nx,Ny,nb_probleme
@@ -53,7 +54,7 @@ module patate
        F(Nx*(j-1)+Nx) = F(Nx*(j-1)+Nx) + (D/dx**2)*fonction_h((Nx+1)*dx,j*dy,nb_probleme)
     end do
     do i=1,Nx
-       F(Nx*(1-1)+i) = F(Nx*(1-1)+i) + (D/dy**2)*fonction_g(i*dx,0.0_wp,nb_probleme)
+       F(i) = F(i) + (D/dy**2)*fonction_g(i*dx,0.0_wp,nb_probleme)
        F(Nx*(Ny-1)+i) = F(Nx*(Ny-1)+i) + (D/dy**2)*fonction_g(i*dx,(Ny+1)*dy,nb_probleme)
     end do
     F=Dt*F
