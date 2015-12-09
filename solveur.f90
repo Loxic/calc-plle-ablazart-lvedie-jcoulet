@@ -5,12 +5,30 @@ module solve
 
 contains
 
+!> Fonction norme 
+!! @param [in] V Vecteur d'entrée
+
+!> @details Fonction utilisée dans les algoirthmes de résolution de Gauss Seidel et Jacobi
+
+
   function norme_2(V)
     implicit none
     real*8,dimension(:),intent(in)::V
     real*8::norme_2
     norme_2=sqrt(dot_product(V,V))
   end function norme_2
+
+
+!> Résolution du système \f$ A.X = b \f$ par l'algorithme de Jacobi
+!! @param [inout] X Vecteur second membre de taille Nx.Ny
+!! @param [in] A Matrice
+!! @param [in] b Vecteur second membre
+!! @param [in] tol critère de convergence de l'algorithme
+
+!> @warning X doit être initialisé
+!> @warning A doit être a diagonale strictement dominante
+
+!> @todo Adapater l'algo au système 
 
   subroutine Jacobi(A,b,x,tol)
     !!Méthode itérative : X doit être donné avec une valeur initiale !!
@@ -40,6 +58,18 @@ contains
       X=X_next
     end do
   end subroutine Jacobi
+
+
+!> Résolution du système \f$ A.X = b \f$ par l'algorithme de Gauss-Seidel
+!! @param [inout] X Vecteur second membre de taille Nx.Ny
+!! @param [in] A Matrice
+!! @param [in] b Vecteur second membre
+!! @param [in] tol critère de convergence de l'algorithme
+
+!> @warning X doit être initialisé
+!> @warning A doit être SDP ou a diagonale strictement dominante
+
+!> @todo Adapater l'algo au système 
 
   subroutine GaussSeidel(A,b,x,tol)
     !!Méthode itérative : X doit être donné avec une valeur initiale !!
@@ -71,6 +101,18 @@ contains
     end do
   end subroutine GaussSeidel
 
+
+!> Résolution du système \f$ A.X = b \f$ par l'algorithme du Gradient Conjugué
+!! @param [inout] K Vecteur second membre de taille Nx.Ny
+!! @param [in] B Vecteur second membre
+!! @param [in] eps critère de convergence de l'algorithme
+!! @param [in] Nmax Nombre d'itération max.
+!! @param [in] Nx,Ny Nombre de noeuds en x, y
+!! @param [in] dx,dy pas d'espace en x, y
+!! @param [in] Dt pas de temps
+!! @param [in] D0 Coefficient de diffusion
+
+!> @warning A doit être SDP
 
   subroutine Grad_conj_implicit(K,B,eps,Nmax,Nx,Ny,dx,dy,D0,Dt)
     !! Gradient implicite utilisé l'an dernier. La matrice n'est pas stockées !!
