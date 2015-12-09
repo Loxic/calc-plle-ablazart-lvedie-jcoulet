@@ -21,7 +21,6 @@ program Chaleur_2D_Seqentiel
   call MPI_INIT(statinfo)
 
   call MPI_COMM_SIZE(MPI_COMM_WORLD, size, statinfo)
-  call MPI_COMM_RANK(MPI_COMM_WORLD, rank, statinfo) 
   call MPI_COMM_GROUP(MPI_COMM_WORLD, group, statinfo)
 
   ! Creation nouveau communicateur
@@ -38,6 +37,7 @@ program Chaleur_2D_Seqentiel
   call MPI_Cart_create(MPI_COMM_WORLD, cart_ndims, cart_dims, cart_periods, 1, comm_cart, statinfo)
   coordinates(1) = 0
   coordinates(2) = 0
+  call MPI_COMM_RANK(comm_cart, rank, statinfo) 
 
   call MPI_Cart_coords(comm_cart, rank, cart_ndims, coordinates, statinfo)
   print*,"rank: ",rank,"coordinates(1): ",coordinates(1),"coordinates(2): ",coordinates(2)
