@@ -14,7 +14,7 @@ program Chaleur_2D_Seqentiel
 
   integer::cart_ndims = 2
   integer,dimension(2)::cart_dims,cart_periods 
-  integer size, rank, group, cart, statinfo
+  integer size, rank, group, comm_cart, statinfo
 
   real*8::t1,t2
 
@@ -25,13 +25,16 @@ program Chaleur_2D_Seqentiel
   call MPI_COMM_GROUP(MPI_COMM_WORLD, group, statinfo)
 
   ! Creation nouveau communicateur
-  call MPI_Comm_create(MPI_COMM_WORLD, group, cart , statinfo)
+  call MPI_Comm_create(MPI_COMM_WORLD, group, comm_cart , statinfo)
 
   !2 dimensions, ? procs pour chaque dimensions, pas de périodicités, reorder -> NOPE
+  cart_dims(1) = 0
+  cart_dims(2) = 0
 
   call MPI_Dims_create(size, cart_ndims, cart_dims, statinfo)
-  call MPI_Cart_create(MPI_COMM_WORLD, cart_ndims, cart_dims, cart_periods, 0, statinfo)
-
+  print*,"cart_dims(1): ",cart_dims(1)
+  print*,"cart_dims(2): ",cart_dims(2)
+  call MPI_Cart_create(comm_cart, cart_ndims, cart_dims, cart_periods, 0, statinfo)
 
   nb_probleme=3 !Cas à résoudre
   !Lecture des paramètres
