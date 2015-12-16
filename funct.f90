@@ -84,6 +84,10 @@ module patate
        ! Com' à gauche : Envoyer un vecteur G1 de taille My à voisins(1)
        ! Com' à gauche : Récupérer le vecteur D1 (nouvellement G1) de taille My de voisins(1)
 
+     !call MPI_SEND(U0(1:My),1,MPI_REAL,2,tag,MPI_COMM_WORLD,statinfo)
+
+     !call MPI_SEND(Moi(1,1),1,ligne,2,tag,MPI_COMM_WORLD,statinfo)
+
        do j=n_y1,n_yn
           F(j-n_y1+1) = F(j-n_y1+1) + (D/dx**2)*fonction_h(1.,j*dy,nb_probleme)
           F(My*(Mx-1) + j-n_y1+1)  = F(My*(Mx-1) + j-n_y1+1)  + (D/dx**2)*G1(j-n_y1 +1)
