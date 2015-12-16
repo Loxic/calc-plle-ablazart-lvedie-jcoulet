@@ -5,10 +5,35 @@ module solve
 
 contains
 
-!> Fonction norme 
-!! @param [in] V Vecteur d'entrée
+  subroutine Sparse_solve(solver,Mx,My,dx,dy,D,Dt,X,B,tol,itermax)
 
-!> @details Fonction utilisée dans les algoirthmes de résolution de Gauss Seidel et Jacobi
+    implicit none
+
+    integer,intent(in)::solver
+    integer, intent(in) :: Mx,My  ! dimensions spatiales du problème
+    real*8, intent(in)::dx,dy,D,Dt,tol
+    integer,intent(in)::itermax
+    real*8, dimension(:), intent(inout) :: X ! donnee
+    real*8, dimension(:), intent(in) :: B ! donnee
+
+    select case (solver)
+    case (1)
+      call Sparse_Jacobi(Mx,My,dx,dy,D,Dt,X,B,tol,itermax)
+    case (2)
+      call Sparse_GaussSeidel(Mx,My,dx,dy,D,Dt,X,B,tol,itermax)
+    case (3)
+      call Sparse_GradConj(Mx,My,dx,dy,D,Dt,X,B,tol,itermax)
+    case default
+      print*,'Fatal error : unknow solver'
+      stop
+    end select
+
+  end subroutine Sparse_solve
+
+  !> Fonction norme 
+  !! @param [in] V Vecteur d'entrée
+
+  !> @details Fonction utilisée dans les algoirthmes de résolution de Gauss Seidel et Jacobi
 
 
   function norme_2(V)
@@ -19,17 +44,17 @@ contains
   end function norme_2
 
 
-!> Résolution du système \f$ A.X = b \f$ par l'algorithme de Jacobi
-!! @param [inout] X Vecteur second membre de taille Nx.Ny
-!! @param [in] A Matrice
-!! @param [in] b Vecteur second membre
-!! @param [in] tol critère de convergence de l'algorithme
+  !> Résolution du système \f$ A.X = b \f$ par l'algorithme de Jacobi
+  !! @param [inout] X Vecteur second membre de taille Nx.Ny
+  !! @param [in] A Matrice
+  !! @param [in] b Vecteur second membre
+  !! @param [in] tol critère de convergence de l'algorithme
 
-!> @warning X doit être initialisé
-!> @warning A doit être a diagonale strictement dominante
+  !> @warning X doit être initialisé
+  !> @warning A doit être a diagonale strictement dominante
 
-!> @todo Adapater l'algo au système 
-  
+  !> @todo Adapater l'algo au système 
+
   subroutine Sparse_Jacobi(Mx,My,dx,dy,D,Dt,X,B,tol,itermax)
 
     implicit none
@@ -47,51 +72,51 @@ contains
     l = 0
 
     do while (l<itermax .and. norme_2(AX - B) > tol*norme_2(B))  !Condition convergence
-    call matmul_implicit(Mx,My,dx,dy,D,Dt,X,AX)
-    !Computes product A*X without term aii*xi
-    X_next = 0
-    do i = 1, Mx
-       do j = 1, My
+      call matmul_implicit(Mx,My,dx,dy,D,Dt,X,AX)
+      !Computes product A*X without term aii*xi
+      X_next = 0
+      do i = 1, Mx
+        do j = 1, My
           k = Mx*(j-1) + i
           ! bloc M
           !AX(k) = (1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2))*X(k) !Terme diagonal
           if (i>1) then
-             X_next(k) = X_next(k) - (D*Dt/dx**2)*X(k-1)   !Terme sur diagonale D
+            X_next(k) = X_next(k) - (D*Dt/dx**2)*X(k-1)   !Terme sur diagonale D
           end if
           if (i<Mx) then
-             X_next(k) = X_next(k) - (D*Dt/dx**2)*X(k+1)  !Terme sous diagonal de D
+            X_next(k) = X_next(k) - (D*Dt/dx**2)*X(k+1)  !Terme sous diagonal de D
           end if
 
           !Bloc E inférieur
           if(j>1) then
-             X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k-My)
+            X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k-My)
           end if
           !Bloc E supérieur
           if (j<My) then
-             X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k+My)
+            X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k+My)
           end if
 
-       end do
-    end do
+        end do
+      end do
 
-  !Xi = 1/aii (bi - Aij*xj )
-    X_next(:) = 1./((1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2)))*(-1*X_next(:)+B(:)) !Terme diagonal
-    X = X_next
-    l=l+1
-  end do
+      !Xi = 1/aii (bi - Aij*xj )
+      X_next(:) = 1./((1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2)))*(-1*X_next(:)+B(:)) !Terme diagonal
+      X = X_next
+      l=l+1
+    end do
   end subroutine Sparse_Jacobi
 
 
-!> Résolution du système \f$ A.X = b \f$ par l'algorithme de Gauss-Seidel
-!! @param [inout] X Vecteur second membre de taille Nx.Ny
-!! @param [in] A Matrice
-!! @param [in] b Vecteur second membre
-!! @param [in] tol critère de convergence de l'algorithme
+  !> Résolution du système \f$ A.X = b \f$ par l'algorithme de Gauss-Seidel
+  !! @param [inout] X Vecteur second membre de taille Nx.Ny
+  !! @param [in] A Matrice
+  !! @param [in] b Vecteur second membre
+  !! @param [in] tol critère de convergence de l'algorithme
 
-!> @warning X doit être initialisé
-!> @warning A doit être SDP ou a diagonale strictement dominante
+  !> @warning X doit être initialisé
+  !> @warning A doit être SDP ou a diagonale strictement dominante
 
-!> @todo Adapater l'algo au système 
+  !> @todo Adapater l'algo au système 
 
 
   subroutine Sparse_GaussSeidel(Mx,My,dx,dy,D,Dt,X,B,tol,itermax)
@@ -111,53 +136,53 @@ contains
     l = 0
 
     do while (l<itermax .and. norme_2(AX - B) > tol*norme_2(B))  !Condition convergence
-    call matmul_implicit(Mx,My,dx,dy,D,Dt,X,AX)
-    !Computes product A*X without term aii*xi
-    X_next = 0
-    do i = 1, Mx
-       do j = 1, My
+      call matmul_implicit(Mx,My,dx,dy,D,Dt,X,AX)
+      !Computes product A*X without term aii*xi
+      X_next = 0
+      do i = 1, Mx
+        do j = 1, My
           k = Mx*(j-1) + i
           ! bloc M
           !AX(k) = (1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2))*X(k) !Terme diagonal
           if (i>1) then
-             X_next(k) = X_next(k) - (D*Dt/dx**2)*X_next(k-1)   !Terme sur diagonale D
+            X_next(k) = X_next(k) - (D*Dt/dx**2)*X_next(k-1)   !Terme sur diagonale D
           end if
           if (i<Mx) then
-             X_next(k) = X_next(k) - (D*Dt/dx**2)*X(k+1)  !Terme sous diagonal de D
+            X_next(k) = X_next(k) - (D*Dt/dx**2)*X(k+1)  !Terme sous diagonal de D
           end if
 
           !Bloc E inférieur
           if(j>1) then
-             X_next(k)=X_next(k)-(Dt*D/dy**2)*X_next(k-My)
+            X_next(k)=X_next(k)-(Dt*D/dy**2)*X_next(k-My)
           end if
           !Bloc E supérieur
           if (j<My) then
-             X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k+My)
+            X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k+My)
           end if
 
           !Xi = 1/aii (bi - Aij*xj )
           X_next(k) = 1./((1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2)))*(-1*X_next(k)+B(k)) !Terme diagonal
           X(k) = X_next(k)
-       end do
-    end do
+        end do
+      end do
 
-    l=l+1
-  end do
+      l=l+1
+    end do
   end subroutine Sparse_GaussSeidel
 
-!> Résolution du système \f$ A.X = b \f$ par l'algorithme du Gradient Conjugué
-!! @param [inout] K Vecteur second membre de taille Nx.Ny
-!! @param [in] B Vecteur second membre
-!! @param [in] eps critère de convergence de l'algorithme
-!! @param [in] Nmax Nombre d'itération max.
-!! @param [in] Nx,Ny Nombre de noeuds en x, y
-!! @param [in] dx,dy pas d'espace en x, y
-!! @param [in] Dt pas de temps
-!! @param [in] D0 Coefficient de diffusion
+  !> Résolution du système \f$ A.X = b \f$ par l'algorithme du Gradient Conjugué
+  !! @param [inout] K Vecteur second membre de taille Nx.Ny
+  !! @param [in] B Vecteur second membre
+  !! @param [in] eps critère de convergence de l'algorithme
+  !! @param [in] Nmax Nombre d'itération max.
+  !! @param [in] Nx,Ny Nombre de noeuds en x, y
+  !! @param [in] dx,dy pas d'espace en x, y
+  !! @param [in] Dt pas de temps
+  !! @param [in] D0 Coefficient de diffusion
 
-!> @warning A doit être SDP
+  !> @warning A doit être SDP
 
-  subroutine Grad_conj_implicit(K,B,eps,Nmax,Nx,Ny,dx,dy,D0,Dt)
+  subroutine Sparse_Gradconj(Nx,Ny,dx,dy,D0,Dt,K,B,eps,Nmax)
     !! Gradient implicite utilisé l'an dernier. La matrice n'est pas stockées !!
     implicit none
     !Entrées/sorties
@@ -191,6 +216,6 @@ contains
       R=R_next
     end do
     print*,'Convergence du GC en',l
-  end subroutine Grad_conj_implicit
+  end subroutine Sparse_Gradconj
 
 end module
