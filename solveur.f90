@@ -60,22 +60,23 @@ contains
   end subroutine Jacobi
 
   
-  subroutine Sparse_Jacobi(Mx,My,dx,dy,D,Dt,X,B,tol)
+  subroutine Sparse_Jacobi(Mx,My,dx,dy,D,Dt,X,B,tol,itermax)
 
     implicit none
 
     integer, intent(in) :: Mx,My  ! dimensions spatiales du problème
     real(wp), intent(in)::dx,dy,D,Dt,tol
+    integer,intent(in)::itermax
     real(wp), dimension(:), intent(inout) :: X ! donnee
     real(wp), dimension(:), intent(in) :: B ! donnee
 
     real*8,dimension(size(X))::X_next,AX
-    integer :: i, j, k
+    integer :: i, j, k,l
 
     AX = 500 !Big value to enter in the loop
+    l = 0
 
-
-    do while (norme_2(AX - B) > tol*norme_2(B))  !Condition convergence
+    do while (l<itermax .and. norme_2(AX - B) > tol*norme_2(B))  !Condition convergence
     call matmul_implicit(Mx,My,dx,dy,D,Dt,X,AX)
     !Computes product A*X without term aii*xi
     X_next = 0
@@ -106,6 +107,7 @@ contains
   !Xi = 1/aii (bi - Aij*xj )
     X_next(:) = 1./((1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2)))*(-1*X_next(:)+B(:)) !Terme diagonal
     X = X_next
+    l=l+1
   end do
   end subroutine Sparse_Jacobi
 
