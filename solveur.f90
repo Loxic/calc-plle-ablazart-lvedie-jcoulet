@@ -29,36 +29,6 @@ contains
 !> @warning A doit être a diagonale strictement dominante
 
 !> @todo Adapater l'algo au système 
-
-  subroutine Jacobi(A,b,x,tol)
-    !!Méthode itérative : X doit être donné avec une valeur initiale !!
-    !!Attention, convergence assurée uniquement dans les cas suivants : 
-    !!    * A est a diagonale strictement dominante                  !!
-    implicit none
-    ! E/S
-    real*8,dimension(:,:),intent(in)::A
-    real*8,dimension(:),intent(in)::B
-    real*8,dimension(:),intent(inout)::X
-    ! Locales
-    real*8,dimension(size(X))::X_next
-    real,intent(in)::tol
-    integer::i,j
-
-    do while (norme_2(matmul(A,X)-B) > tol*norme_2(B))  !Condition convergence
-      do i=1,size(X)
-        X_next(i) = B(i)
-        do j=1,i-1
-          X_next(i) = X_next(i) - A(i,j) * X(j)
-        end do
-        do j=i+1,size(X)
-          X_next(i) = X_next(i) - A(i,j)*X(j)
-        end do
-        X_next(i) = X_next(i) / A(i,i)
-      end do
-      X=X_next
-    end do
-  end subroutine Jacobi
-
   
   subroutine Sparse_Jacobi(Mx,My,dx,dy,D,Dt,X,B,tol,itermax)
 
