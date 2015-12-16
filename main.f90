@@ -65,14 +65,14 @@ program Chaleur_2D_Seqentiel
 
   call map_rect(Nx,Ny,cart_dims(1),cart_dims(2),coordinates(1),coordinates(2),2,map)
   if (coordinates(2) == 0 ) then
-     !print*, map(1),map(2),map(3),map(4),coordinates(1),coordinates(2)
+     print*, map(1),map(2),map(3),map(4),coordinates(1),coordinates(2)
   end if
 
   if (rank==2) then  
-    print*,'coucou proc2'
-    print*,Voisins
-    print*,'t ou ?'
-    print*,coordinates
+    !print*,'coucou proc2'
+    !print*,Voisins
+    !print*,'t ou ?'
+    !print*,coordinates
   end if
 
   allocate(U(Nx*Ny),U0(Nx*Ny))

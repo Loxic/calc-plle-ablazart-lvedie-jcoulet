@@ -4,13 +4,29 @@ module patate
   integer,parameter::wp=8
 
   contains
+
+
+!!!!! Prise en compte des CL sur sous maillage
+
+! => maillage de taille Nx . Ny 
+! => sous maillage de taille Mx . My 
+
+! Critère de détection des bords :
+! Remplacer voisin par g(en 0/en 1) et copain par h(en 0 /en 1)
+
+
+!!!!!! Recouvrement
+
+! 'CL' plus larges : au lieu de prendre juste l'indice du bord à côté, on en prend une tranche, et on l'inverse
+
   subroutine Get_F(F,Nx,Ny,dx,dy,D,Dt,time,nb_probleme)
- 
+! 4 nouvelles variables ; noeud de début-fin en x-y
+  !subroutine Get_F(F,Nx,Ny,Mx,My,n_x1,n_xn,n_y1,n_yn,dx,dy,D,Dt,time,nb_probleme)
     implicit none
     real(wp),dimension(:),allocatable,intent(out)::F
     integer,intent(in)::Nx,Ny,nb_probleme
+   !integer,intent(in)::Nx,Ny,Mx,My,x1,xn,y1,yn,nb_probleme
     real(wp),intent(in)::dx,dy,D,Dt,time
-
     integer::i,j
 
     allocate(F(Nx*Ny))
@@ -21,38 +37,64 @@ module patate
        end do
     end do
 
-!!!! Division du maillage : définir sur quel domaine boucle chaque proc (charge 1D, 2D..)
-
-! routine partionnement maillage
-! => maillage de taille Nx . Ny 
-! => sous maillage de taille Mx . My 
-! => réecriture : distribution du vecteur U et F sur le maillage
-
-! Petite routine de réecriture globale à faire pour obtenir le vecteur U final ?
-! Ou alors, multiplot gnuplot
-
-
-!!!!! Prise en compte des CL sur un sous maillage
-
-! les Mx première coordonnées appellent le copain de GAUCHE <-> le copain passe ses Mx dernières
-! les Mx dernière coordonnées appellent le copain de DROITE <-> le copain passe ses Mx premières
-! chaque '1 + (i-1)*Mx' pour i allant de 1 à My appelle le voisin du BAS <-> le voison passe chaque 'i*Mx' pour i allant de 1 à My
-! chaque 'i*Mx' pour i allant de 1 à Ny prend appelle le voisin du HAUT<-> le voison passe chaque 'i*Mx' pour i allant de 1 à My
-
-! Critère de détection des bords
-! Remplacer voisin par g(en 0/en 1) et copain par h(en 0 /en 1)
+! Nouvelle taille de boucle
+!    allocate(F(Mx*My))
+!    F=0
+!    do i=n_x1,n_xn
+!       do j=n_y1,n_yn
+!          F(Mx*(j-n_y1)+i-n_x1+1)=fonction_f(i*dx,y1 + j*dy,dx*(Nx+1),dy*(Ny+1),time,nb_probleme)
+!       end do
+!    end do
 
 
-
-!!!!!! Recouvrement
-
-! On élargit les domaines => Nouvelle routine de partionnement
-! 'CL' plus larges : au lieu de prendre juste l'indice du bord à côté, on en prend une tranche, et on l'inverse
 
     do j=1,Ny
        F(Nx*(j-1)+1) = F(Nx*(j-1)+1) + (D/dx**2)*fonction_h(0.0_wp,j*dy,nb_probleme)
        F(Nx*(j-1)+Nx) = F(Nx*(j-1)+Nx) + (D/dx**2)*fonction_h((Nx+1)*dx,j*dy,nb_probleme)
     end do
+
+
+!!!!!!!! COMM GAUCHE-DROITE
+
+!!! Condition de bord gauche : h(0,y) + Com' à droite
+
+    !if [ voisin gauche nul] 
+
+       ! Com' à droite : Envoyer un vecteur D1 de taille My à voisins(3)
+       ! Com' à droite : Récupérer le vecteur G1 (nouvellement D1) de taille My de voisins(3)
+       !do j=n_y1,n_yn
+          !F(Mx*(j-n_y1)+1)  = F(Mx*(j-n_y1)+1)  + (D/dx**2)*fonction_h(0.0_wp,j*dy,nb_probleme)
+          !F(Mx*(j-n_y1)+Mx) = F(Mx*(j-n_y1)+Mx) + (D/dx**2)*D1(j)
+       !end do
+
+
+!!! Condition de bord droit : h(1,y) + Com' à gauche
+
+    !else if [ voisin droite nul] 
+
+       ! Com' à gauche : Envoyer un vecteur G1 de taille My à voisins(1)
+       ! Com' à gauche : Récupérer le vecteur D1 (nouvellement G1) de taille My de voisins(1)
+       !do j=n_y1,n_yn
+          !F(Mx*(j-n_y1)+Mx) = F(Mx*(j-n_y1)+Mx) + (D/dx**2)*fonction_h((Nx+1)*dx,j*dy,nb_probleme)
+          !F(Mx*(j-n_y1)+1)  = F(Mx*(j-n_y1)+1)  + (D/dx**2)*G1(j)
+       !end do
+
+!!! Milieu du maillage : full com' Gauche/droite
+
+    !else
+
+       ! Com' à gauche : Envoyer un vecteur G1 de taille My à voisins(1)
+       ! Com' à gauche : Récupérer un vecteur D1 (nouvellement G1) de taille My de voisins(1)
+
+       ! Com' à droite : Envoyer un vecteur D1 de taille My à voisins(3)
+       ! Com' à droite : Récupérer le vecteur G1 (nouvellement D1) de taille My de voisins(3)
+       !do j=n_y1,n_yn
+          !F(Mx*(j-n_y1)+Mx) = F(Mx*(j-n_y1)+Mx) + (D/dx**2)*D1(j)
+          !F(Mx*(j-n_y1)+1)  = F(Mx*(j-n_y1)+1)  + (D/dx**2)*G1(j)
+       !end do
+
+! Com' haut/bas ici
+
     do i=1,Nx
        F(i) = F(i) + (D/dy**2)*fonction_g(i*dx,0.0_wp,nb_probleme)
        F(Nx*(Ny-1)+i) = F(Nx*(Ny-1)+i) + (D/dy**2)*fonction_g(i*dx,(Ny+1)*dy,nb_probleme)
