@@ -1,4 +1,4 @@
-module patate
+module mathfunctions
 
   implicit none
   integer,parameter::wp=8

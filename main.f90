@@ -1,7 +1,7 @@
 program Chaleur_2D_Seqentiel
 
   use solve
-  use patate
+  use mathfunctions
   use partition
 
   implicit none

@@ -1,6 +1,6 @@
 module solve
 
-  use patate
+  use mathfunctions
   implicit none
 
 contains
