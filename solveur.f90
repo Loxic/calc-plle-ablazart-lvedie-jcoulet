@@ -35,10 +35,10 @@ contains
     implicit none
 
     integer, intent(in) :: Mx,My  ! dimensions spatiales du problème
-    real(wp), intent(in)::dx,dy,D,Dt,tol
+    real*8, intent(in)::dx,dy,D,Dt,tol
     integer,intent(in)::itermax
-    real(wp), dimension(:), intent(inout) :: X ! donnee
-    real(wp), dimension(:), intent(in) :: B ! donnee
+    real*8, dimension(:), intent(inout) :: X ! donnee
+    real*8, dimension(:), intent(in) :: B ! donnee
 
     real*8,dimension(size(X))::X_next,AX
     integer :: i, j, k,l
@@ -54,7 +54,7 @@ contains
        do j = 1, My
           k = Mx*(j-1) + i
           ! bloc M
-          !AX(k) = (1+2*D*Dt*(1.0_wp/dx**2 + 1.0_wp/dy**2))*X(k) !Terme diagonal
+          !AX(k) = (1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2))*X(k) !Terme diagonal
           if (i>1) then
              X_next(k) = X_next(k) - (D*Dt/dx**2)*X(k-1)   !Terme sur diagonale D
           end if
