@@ -93,36 +93,57 @@ contains
 
 !> @todo Adapater l'algo au système 
 
-  subroutine GaussSeidel(A,b,x,tol)
-    !!Méthode itérative : X doit être donné avec une valeur initiale !!
-    !!Attention, convergence assurée uniquement dans les cas suivants : 
-    !!    * A est SDP                                                !!
-    !!    * A est a diagonale strictement dominante                  !!
+
+  subroutine Sparse_GaussSeidel(Mx,My,dx,dy,D,Dt,X,B,tol,itermax)
+
     implicit none
-    ! E/S
-    real*8,dimension(:,:),intent(in)::A
-    real*8,dimension(:),intent(in)::B
-    real*8,dimension(:),intent(inout)::X
-    ! Locales
-    real*8,dimension(size(X))::X_next
-    real,intent(in)::tol
-    integer::i,j
 
-    do while (norme_2(matmul(A,X)-B) > tol*norme_2(B))  !Condition convergence
-      do i=1,size(X)
-        X_next(i) = B(i)
-        do j=1,i-1
-          X_next(i) = X_next(i) - A(i,j) * X_next(j)
-        end do
-        do j=i+1,size(X)
-          X_next(i) = X_next(i) - A(i,j)*X(j)
-        end do
-        X_next(i) = X_next(i) / A(i,i)
-      end do
-      X=X_next
+    integer, intent(in) :: Mx,My  ! dimensions spatiales du problème
+    real*8, intent(in)::dx,dy,D,Dt,tol
+    integer,intent(in)::itermax
+    real*8, dimension(:), intent(inout) :: X ! donnee
+    real*8, dimension(:), intent(in) :: B ! donnee
+
+    real*8,dimension(size(X))::X_next,AX
+    integer :: i, j, k,l
+
+    AX = 500 !Big value to enter in the loop
+    l = 0
+
+    do while (l<itermax .and. norme_2(AX - B) > tol*norme_2(B))  !Condition convergence
+    call matmul_implicit(Mx,My,dx,dy,D,Dt,X,AX)
+    !Computes product A*X without term aii*xi
+    X_next = 0
+    do i = 1, Mx
+       do j = 1, My
+          k = Mx*(j-1) + i
+          ! bloc M
+          !AX(k) = (1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2))*X(k) !Terme diagonal
+          if (i>1) then
+             X_next(k) = X_next(k) - (D*Dt/dx**2)*X_next(k-1)   !Terme sur diagonale D
+          end if
+          if (i<Mx) then
+             X_next(k) = X_next(k) - (D*Dt/dx**2)*X(k+1)  !Terme sous diagonal de D
+          end if
+
+          !Bloc E inférieur
+          if(j>1) then
+             X_next(k)=X_next(k)-(Dt*D/dy**2)*X_next(k-My)
+          end if
+          !Bloc E supérieur
+          if (j<My) then
+             X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k+My)
+          end if
+
+          !Xi = 1/aii (bi - Aij*xj )
+          X_next(k) = 1./((1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2)))*(-1*X_next(k)+B(k)) !Terme diagonal
+          X(k) = X_next(k)
+       end do
     end do
-  end subroutine GaussSeidel
 
+    l=l+1
+  end do
+  end subroutine Sparse_GaussSeidel
 
 !> Résolution du système \f$ A.X = b \f$ par l'algorithme du Gradient Conjugué
 !! @param [inout] K Vecteur second membre de taille Nx.Ny
