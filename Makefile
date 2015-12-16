@@ -1,6 +1,6 @@
 #
 #
-F90 = gfortran
+F90 = mpif90
 LIB = 
 DEBUG_FLAG = -g -fbounds-check -fdefault-real-8
 OPTIM_FLAG = -O3 -fdefault-real-8
@@ -8,7 +8,7 @@ USUAL_FLAG = -fdefault-real-8
 PROFIL_FLAG = -g -pg -fdefault-real-8
 
 PROG = run
-SRC = display.f90 transport.f90 main.f90
+SRC = *.f90
 
 usual :
 	$(F90) $(USUAL_FLAG) $(SRC) -o $(PROG) $(LIB)
