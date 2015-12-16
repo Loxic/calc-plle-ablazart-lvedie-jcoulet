@@ -59,6 +59,56 @@ contains
     end do
   end subroutine Jacobi
 
+  
+  subroutine Sparse_Jacobi(Mx,My,dx,dy,D,Dt,X,B,tol)
+
+    implicit none
+
+    integer, intent(in) :: Mx,My  ! dimensions spatiales du problème
+    real(wp), intent(in)::dx,dy,D,Dt,tol
+    real(wp), dimension(:), intent(inout) :: X ! donnee
+    real(wp), dimension(:), intent(in) :: B ! donnee
+
+    real*8,dimension(size(X))::X_next,AX
+    integer :: i, j, k
+
+    AX = 500 !Big value to enter in the loop
+
+
+    do while (norme_2(AX - B) > tol*norme_2(B))  !Condition convergence
+    call matmul_implicit(Mx,My,dx,dy,D,Dt,X,AX)
+    !Computes product A*X without term aii*xi
+    X_next = 0
+    do i = 1, Mx
+       do j = 1, My
+          k = Mx*(j-1) + i
+          ! bloc M
+          !AX(k) = (1+2*D*Dt*(1.0_wp/dx**2 + 1.0_wp/dy**2))*X(k) !Terme diagonal
+          if (i>1) then
+             X_next(k) = X_next(k) - (D*Dt/dx**2)*X(k-1)   !Terme sur diagonale D
+          end if
+          if (i<Mx) then
+             X_next(k) = X_next(k) - (D*Dt/dx**2)*X(k+1)  !Terme sous diagonal de D
+          end if
+
+          !Bloc E inférieur
+          if(j>1) then
+             X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k-My)
+          end if
+          !Bloc E supérieur
+          if (j<My) then
+             X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k+My)
+          end if
+
+       end do
+    end do
+
+  !Xi = 1/aii (bi - Aij*xj )
+    X_next(:) = 1./((1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2)))*(-1*X_next(:)+B(:)) !Terme diagonal
+    X = X_next
+  end do
+  end subroutine Sparse_Jacobi
+
 
 !> Résolution du système \f$ A.X = b \f$ par l'algorithme de Gauss-Seidel
 !! @param [inout] X Vecteur second membre de taille Nx.Ny
