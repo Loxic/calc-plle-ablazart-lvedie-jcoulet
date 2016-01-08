@@ -11,7 +11,7 @@ program Chaleur_2D_Seqentiel
   real*8::Lx,Ly,D,Dt,dx,dy,Tmax
   real*8,dimension(:,:),allocatable::A
   real*8,dimension(:),allocatable::U0,U,F,B
-  integer::i,j,nb_iter,nb_probleme
+  integer::i,j,nb_iter,nb_probleme,recouv
 
   integer,dimension(4) :: map,voisins
 ! voising :  gauche haut droite bas
@@ -64,7 +64,8 @@ program Chaleur_2D_Seqentiel
   D = 1.
   nb_iter=ceiling(Tmax/dt)
 
-  call map_rect(Nx,Ny,cart_dims(1),cart_dims(2),coordinates(1),coordinates(2),2,map)
+  recouv = 1
+  call map_rect(Nx,Ny,cart_dims(1),cart_dims(2),coordinates(1),coordinates(2),recouv,map)
   !print*,map
   if (coordinates(2) == 0 ) then
      !print*, map(1),map(2),map(3),map(4),coordinates(1),coordinates(2)
@@ -74,10 +75,10 @@ program Chaleur_2D_Seqentiel
   My = Map(4) - map(3) +1
 
   if (rank==2) then  
-    print*,'coucou proc2'
-    print*,Voisins
-    print*,'t ou ?'
-    print*,coordinates
+    !print*,'coucou proc2'
+    !print*,Voisins
+    !print*,'t ou ?'
+    !print*,coordinates
   end if
 
   allocate(U(Nx*Ny),U0(Nx*Ny))
@@ -88,7 +89,7 @@ program Chaleur_2D_Seqentiel
 
   call CPU_TIME(t1)
   do i=1, 1
-     call Get_F(F,Mx,My,map(1),map(2),map(3),map(4),dx,dy,D,Dt,i*Dt,voisins,nb_probleme,rank)
+     call Get_F(F,Mx,My,map(1),map(2),map(3),map(4),dx,dy,D,Dt,i*Dt,voisins,nb_probleme,rank,recouv,comm_cart)
      !F=F+U0
      U=0
      !call Grad_conj_implicit(U,F,0.001_wp,1000,Nx,Ny,dx,dy,D,Dt)
