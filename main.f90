@@ -88,7 +88,7 @@ program Chaleur_2D_Seqentiel
 
   call CPU_TIME(t1)
   do i=1, 1
-     call Get_F(F,Mx,My,map(1),map(2),map(3),map(4),dx,dy,D,Dt,i*Dt,voisins,nb_probleme)
+     call Get_F(F,Mx,My,map(1),map(2),map(3),map(4),dx,dy,D,Dt,i*Dt,voisins,nb_probleme,rank)
      !F=F+U0
      U=0
      !call Grad_conj_implicit(U,F,0.001_wp,1000,Nx,Ny,dx,dy,D,Dt)
