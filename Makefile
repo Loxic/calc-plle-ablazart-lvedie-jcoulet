@@ -8,7 +8,7 @@ USUAL_FLAG = -fdefault-real-8
 PROFIL_FLAG = -g -pg -fdefault-real-8
 
 PROG = run
-SRC = funct.f90 parti.f90 solveur.f90 main.f90
+SRC = display.f90 funct.f90 parti.f90 solveur.f90 main.f90
 
 usual :
 	$(F90) $(USUAL_FLAG) $(SRC) -o $(PROG) $(LIB)

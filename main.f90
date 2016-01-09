@@ -3,6 +3,7 @@ program Chaleur_2D_Seqentiel
   use solve
   use mathfunctions
   use partition
+  use display
 
   implicit none
   include "mpif.h"
@@ -50,7 +51,7 @@ program Chaleur_2D_Seqentiel
   call MPI_CART_SHIFT(comm_cart,1,1,voisins(4),voisins(2),statinfo) ! bas/haut
 
 
-  nb_probleme=3 !Cas à résoudre
+  nb_probleme=1 !Cas à résoudre
   !Lecture des paramètres
   !Paramètres spatiaux
   open (unit=11, file='parametres')
@@ -81,29 +82,30 @@ program Chaleur_2D_Seqentiel
     !print*,coordinates
   end if
 
-  allocate(U(Nx*Ny),U0(Nx*Ny))
+  allocate(U(Mx*My),U0(Mx*My))
   U0=0
   !print*,'Nx',Nx,'Ny',Ny,'dx',dx,'dy',dy,'Cas',nb_probleme
 
   !Boucle principale
 
   call CPU_TIME(t1)
-  do i=1, 1
+  do i=1, nb_iter
      call Get_F(F,Mx,My,map(1),map(2),map(3),map(4),dx,dy,D,Dt,i*Dt,voisins,nb_probleme,rank,recouv,comm_cart)
-     !F=F+U0
+     F=F+U0
      U=0
-     !call Grad_conj_implicit(U,F,0.001_wp,1000,Nx,Ny,dx,dy,D,Dt)
+     call Sparse_solve(3,Mx,My,dx,dy,D,Dt,U,F,0.001_wp,1000)
      U0=U
   end do
   call CPU_TIME(t2)
 
+  call write_data(rank,map,U,Mx,My,dx,dy,int2char(rank))
   !call save_result(U,Nx,Ny,dx,dy,"resultatseq.dat")
 
-  deallocate(F)
+  deallocate(F,U0,U)
 
 
 
-  !print*,"Temps d'execution : ",t2-t1
+  print*,"Temps d'execution : ",t2-t1
 
   call MPI_FINALIZE(statinfo)
 
