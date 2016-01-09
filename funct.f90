@@ -1,10 +1,13 @@
 module mathfunctions
 
+use display
 
   implicit none
   integer,parameter::wp=8
 
+
   contains
+
 
 
 !!!!! Prise en compte des CL sur sous maillage
@@ -16,16 +19,17 @@ module mathfunctions
 
 ! 'CL' plus larges : au lieu de prendre juste l'indice du bord à côté, on en prend une tranche, et on l'inverse
 
-subroutine Get_F(F,Mx,My,n_x1,n_xn,n_y1,n_yn,dx,dy,D,Dt,time,voisins,nb_probleme,rank,recouv,comm_cart)
+subroutine Get_F(F,U,Mx,My,n_x1,n_xn,n_y1,n_yn,dx,dy,D,Dt,time,voisins,nb_probleme,rank,recouv,comm_cart,map)
 
 
     implicit none
 
     include "mpif.h"
 
-    real*8,dimension(:),allocatable,intent(out)::F
     integer,intent(in)::Mx,My,n_x1,n_xn,n_y1,n_yn,nb_probleme,rank,recouv,comm_cart
-    integer,dimension(4),intent(in)::voisins
+    real*8,dimension(Mx*My),intent(in)::U
+    real*8,dimension(Mx*My),intent(inout)::F
+    integer,dimension(4),intent(in)::voisins,map
     real*8,intent(in)::dx,dy,D,Dt,time
     real*8,dimension(:),allocatable::H1,B1,G1,D1,H2,B2,G2,D2
     integer::i,j,statinfo
@@ -33,8 +37,7 @@ subroutine Get_F(F,Mx,My,n_x1,n_xn,n_y1,n_yn,dx,dy,D,Dt,time,voisins,nb_probleme
 
 
 ! Nouvelle taille de boucle
-
-    allocate(F(Mx*My),H1(Mx),B1(Mx),G1(My),D1(My),H2(Mx),B2(Mx),G2(My),D2(My))
+    allocate(H1(Mx),B1(Mx),G1(My),D1(My),H2(Mx),B2(Mx),G2(My),D2(My))
 
     H1 = 0 ;   B1 = 0 ;    G1 = 0 ;    D1 = 0  
     F=0
@@ -45,7 +48,7 @@ subroutine Get_F(F,Mx,My,n_x1,n_xn,n_y1,n_yn,dx,dy,D,Dt,time,voisins,nb_probleme
        end do
     end do
 
-
+!! F OK
 
 !!!!!!!! COMM GAUCHE-DROITE
 
@@ -60,24 +63,6 @@ subroutine Get_F(F,Mx,My,n_x1,n_xn,n_y1,n_yn,dx,dy,D,Dt,time,voisins,nb_probleme
        end do
 
 
-!!! Condition de bord gauche : h(0,y) + Com' à droite
-
-    else if (Voisins(1) < 0) then
-       
-       ! Com' à droite : Envoyer un vecteur D1 de taille My à voisins(3)
-       ! Puis récupérer le vecteur G1 (nouvellement D2) de taille My de voisins(3)
-       do j=1,My
-           D1(j) = F( Mx*j -recouv)
-       end do
-       call MPI_SEND(D1,My,MPI_REAL,voisins(3),101,comm_cart,statinfo)
-       call MPI_RECV(D2,My,MPI_REAL,voisins(3),101,comm_cart,status,statinfo)
-
-       do j=n_y1,n_yn
-          F(Mx*(j-n_y1)+1)  = F(Mx*(j-n_y1)+1)  + (D/dx**2)*fonction_h(0.0,j*dy,nb_probleme)
-          F(Mx*(j+1-n_y1) -1) = F(Mx*(j+1-n_y1) -1) + (D/dx**2)*D2(j-n_y1 +1)
-       end do
-
-
 !!! Condition de bord droit : h(1,y) + Com' à gauche
 
     else if (Voisins(3) < 0) then
@@ -86,14 +71,32 @@ subroutine Get_F(F,Mx,My,n_x1,n_xn,n_y1,n_yn,dx,dy,D,Dt,time,voisins,nb_probleme
        ! Puis récupérer le vecteur D1 (nouvellement G2) de taille My de voisins(1)
 
        do j=1,My
-           G1(j) = F( Mx*(j-1) + 1 + recouv)
+           G1(j) = U( Mx*(j-1) + 1 + recouv)
        end do
        call MPI_SEND(G1,My,MPI_REAL,voisins(1),101,comm_cart,statinfo)
-       call MPI_RECV(G2,My,MPI_REAL,voisins(1),101,comm_cart,status,statinfo)
+       call MPI_RECV(G2,My,MPI_REAL,voisins(1),102,comm_cart,status,statinfo)
 
        do j=n_y1,n_yn
           F(Mx*(j-n_y1)+1) = F(Mx*(j-n_y1)+1) + (D/dx**2)*G2(j-n_y1 +1)
           F(Mx*(j+1-n_y1) -1)  = F(Mx*(j+1-n_y1) -1)  + (D/dx**2)*fonction_h(1.0,j*dy,nb_probleme)
+       end do
+
+
+!!! Condition de bord gauche : h(0,y) + Com' à droite
+
+    else if (Voisins(1) < 0) then
+       
+       ! Com' à droite : Envoyer un vecteur D1 de taille My à voisins(3)
+       ! Puis récupérer le vecteur G1 (nouvellement D2) de taille My de voisins(3)
+       do j=1,My
+           D1(j) = U( Mx*j -recouv)
+       end do
+       call MPI_SEND(D1,My,MPI_REAL,voisins(3),102,comm_cart,statinfo)
+       call MPI_RECV(D2,My,MPI_REAL,voisins(3),101,comm_cart,status,statinfo)
+
+       do j=n_y1,n_yn
+          F(Mx*(j-n_y1)+1)  = F(Mx*(j-n_y1)+1)  + (D/dx**2)*fonction_h(0.0,j*dy,nb_probleme)
+          F(Mx*(j+1-n_y1) -1) = F(Mx*(j+1-n_y1) -1) + (D/dx**2)*D2(j-n_y1 +1)
        end do
 
 
@@ -104,17 +107,17 @@ subroutine Get_F(F,Mx,My,n_x1,n_xn,n_y1,n_yn,dx,dy,D,Dt,time,voisins,nb_probleme
        ! Com' à gauche : Envoyer un vecteur G1 de taille My à voisins(1)
        ! Puis récupérer le vecteur D1 (nouvellement G2) de taille My de voisins(1)
        do j=1,My
-           G1(j) = F( Mx*(j-1) + 1 + recouv)
+           G1(j) = U( Mx*(j-1) + 1 + recouv)
        end do
        call MPI_SEND(G1,My,MPI_REAL,voisins(1),101,comm_cart,statinfo)
-       call MPI_RECV(G2,My,MPI_REAL,voisins(1),101,comm_cart,status,statinfo)
+       call MPI_RECV(G2,My,MPI_REAL,voisins(1),102,comm_cart,status,statinfo)
 
        ! Com' à droite : Envoyer un vecteur D1 de taille My à voisins(3)
        ! Puis récupérer le vecteur G1 (nouvellement D2) de taille My de voisins(3)
        do j=1,My
-           D1(j) = F( Mx*j -recouv)
+           D1(j) = U( Mx*j -recouv)
        end do
-       call MPI_SEND(D1,My,MPI_REAL,voisins(3),101,comm_cart,statinfo)
+       call MPI_SEND(D1,My,MPI_REAL,voisins(3),102,comm_cart,statinfo)
        call MPI_RECV(D2,My,MPI_REAL,voisins(3),101,comm_cart,status,statinfo)
 
        do j=n_y1,n_yn
@@ -145,10 +148,10 @@ subroutine Get_F(F,Mx,My,n_x1,n_xn,n_y1,n_yn,dx,dy,D,Dt,time,voisins,nb_probleme
        ! Com' en haut : Envoyer un vecteur H1 de taille Mx à voisins(2)
        ! Puis récupérer le vecteur B1 (nouvellement H2) de taille My de voisins(2)
        do i=1,Mx
-           H1(i) = F( Mx*(My-1-recouv) + i)
+           H1(i) = U( Mx*(My-1-recouv) + i)
        end do
-       call MPI_SEND(H1,Mx,MPI_REAL,voisins(2),101,comm_cart,statinfo)
-       call MPI_RECV(H2,Mx,MPI_REAL,voisins(2),101,comm_cart,status,statinfo)
+       call MPI_SEND(H1,Mx,MPI_REAL,voisins(2),103,comm_cart,statinfo)
+       call MPI_RECV(H2,Mx,MPI_REAL,voisins(2),104,comm_cart,status,statinfo)
 
 
        do i=n_x1,n_xn
@@ -163,10 +166,10 @@ subroutine Get_F(F,Mx,My,n_x1,n_xn,n_y1,n_yn,dx,dy,D,Dt,time,voisins,nb_probleme
        ! Com' EN BAS : Envoyer un vecteur B1 de taille Mx à voisins(4)
        ! Puis récupérer le vecteur H1 (nouvellement B2) de taille My de voisins(4)
        do i=1,Mx
-           B1(i) = F(i + Mx*recouv)
+           B1(i) = U(i + Mx*recouv)
        end do
-       call MPI_SEND(B1,Mx,MPI_REAL,voisins(4),101,comm_cart,statinfo)
-       call MPI_RECV(B2,Mx,MPI_REAL,voisins(4),101,comm_cart,status,statinfo)
+       call MPI_SEND(B1,Mx,MPI_REAL,voisins(4),104,comm_cart,statinfo)
+       call MPI_RECV(B2,Mx,MPI_REAL,voisins(4),103,comm_cart,status,statinfo)
 
        do i=n_x1,n_xn
           F(i-n_x1+1)  = F(i-n_x1+1)  + (D/dx**2)*B2(i-n_x1+1)
@@ -180,18 +183,18 @@ subroutine Get_F(F,Mx,My,n_x1,n_xn,n_y1,n_yn,dx,dy,D,Dt,time,voisins,nb_probleme
        ! Com' en haut : Envoyer un vecteur H1 de taille Mx à voisins(2)
        ! Puis récupérer le vecteur B1 (nouvellement H2) de taille My de voisins(2)
        do i=1,Mx
-           H1(i) = F( Mx*(My-1-recouv) + i)
+           H1(i) = U( Mx*(My-1-recouv) + i)
        end do
-       call MPI_SEND(H1,Mx,MPI_REAL,voisins(2),101,comm_cart,statinfo)
-       call MPI_RECV(H2,Mx,MPI_REAL,voisins(2),101,comm_cart,status,statinfo)
+       call MPI_SEND(H1,Mx,MPI_REAL,voisins(2),103,comm_cart,statinfo)
+       call MPI_RECV(H2,Mx,MPI_REAL,voisins(2),104,comm_cart,status,statinfo)
 
        ! Com' EN BAS : Envoyer un vecteur B1 de taille Mx à voisins(4)
        ! Puis récupérer le vecteur B1 (nouvellement B2) de taille My de voisins(4)
        do i=1,Mx
-           B1(i) = F(i + Mx*recouv)
+           B1(i) = U(i + Mx*recouv)
        end do
-       call MPI_SEND(B1,Mx,MPI_REAL,voisins(4),101,comm_cart,statinfo)
-       call MPI_RECV(B2,Mx,MPI_REAL,voisins(4),101,comm_cart,status,statinfo)
+       call MPI_SEND(B1,Mx,MPI_REAL,voisins(4),104,comm_cart,statinfo)
+       call MPI_RECV(B2,Mx,MPI_REAL,voisins(4),103,comm_cart,status,statinfo)
 
 
 
