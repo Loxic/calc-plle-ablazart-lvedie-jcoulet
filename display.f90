@@ -94,4 +94,55 @@ module display
     
   end subroutine write_data
 
+
+ subroutine write_data2(Me,voisins,ind_local,nb_probleme,U,Mx,My,dx,dy,filename)
+! Com' droite
+    implicit none
+    integer,intent(in)::Me,Mx,My,nb_probleme
+    real*8,dimension(My),intent(in)::U
+    integer,dimension(4),intent(in)::voisins,ind_local
+    real*8,intent(in)::dx,dy
+    character(len=*),intent(in)::filename
+
+    integer::i1,iN,j1,jN
+    integer::i,j
+
+    i1 = ind_local(1) ; iN = ind_local(2) ; j1 = ind_local(3) ; jN = ind_local(4)
+    open(unit=12,file=filename)
+
+      i = iN
+      do j = j1,jN
+          write(12,*) i*dx, j*dy, U(1 + (j-j1))
+      end do
+
+    close(12)
+    
+  end subroutine write_data2
+
+
+ subroutine write_data3(Me,voisins,ind_local,nb_probleme,U,Mx,My,dx,dy,filename)
+! Com' gauche
+    implicit none
+    integer,intent(in)::Me,Mx,My,nb_probleme
+    real*8,dimension(My),intent(in)::U
+    integer,dimension(4),intent(in)::voisins,ind_local
+    real*8,intent(in)::dx,dy
+    character(len=*),intent(in)::filename
+
+    integer::i1,iN,j1,jN
+    integer::i,j
+
+    i1 = ind_local(1) ; iN = ind_local(2) ; j1 = ind_local(3) ; jN = ind_local(4)
+    open(unit=12,file=filename)
+
+      i = i1
+      do j = j1,jN
+          write(12,*) i*dx, j*dy, U(i-i1 +1 + (j-j1))
+      end do
+
+    close(12)
+    
+  end subroutine write_data3
+
+
 end module display

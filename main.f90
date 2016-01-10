@@ -64,9 +64,9 @@ program Chaleur_2D_Seqentiel
   Tmax=10.0
   D = 1.
   !nb_iter=100*ceiling(Tmax/dt)
-  nb_iter=2
+  nb_iter=40
 
-  recouv = 12
+  recouv = 0
   call map_rect(Nx,Ny,cart_dims(1),cart_dims(2),coordinates(1),coordinates(2),recouv,map)
   !print*,map
   if (coordinates(2) == 0 ) then
@@ -91,11 +91,12 @@ program Chaleur_2D_Seqentiel
 
   call CPU_TIME(t1)
   do i=1, nb_iter
-     call Get_F(F,U0,Mx,My,map(1),map(2),map(3),map(4),dx,dy,D,Dt,i*Dt,voisins,nb_probleme,rank,recouv,comm_cart,map)
-     !call write_data(rank,voisins,map,nb_probleme,F,Mx,My,dx,dy,int2char(rank))
+     call Get_F(F,U0,Mx,My,dx,dy,D,Dt,i*Dt,voisins,nb_probleme,rank,recouv,comm_cart,map)
      F=F+U0
      U=0
      call Sparse_solve(3,Mx,My,dx,dy,D,Dt,U,F,0.001_wp,1000)
+  !call write_data(rank,voisins,map,nb_probleme,U,Mx,My,dx,dy,int2char(rank))
+
      U0=U
   end do
   call CPU_TIME(t2)
