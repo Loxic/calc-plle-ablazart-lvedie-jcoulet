@@ -53,7 +53,6 @@ contains
   !> @warning X doit être initialisé
   !> @warning A doit être a diagonale strictement dominante
 
-  !> @todo Adapater l'algo au système 
 
   subroutine Sparse_Jacobi(Mx,My,dx,dy,D,Dt,X,B,tol,itermax)
 
@@ -75,8 +74,8 @@ contains
       call matmul_implicit(Mx,My,dx,dy,D,Dt,X,AX)
       !Computes product A*X without term aii*xi
       X_next = 0
-      do i = 1, Mx
-        do j = 1, My
+      do j = 1, My
+        do i = 1, Mx
           k = Mx*(j-1) + i
           ! bloc M
           !AX(k) = (1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2))*X(k) !Terme diagonal
@@ -89,11 +88,11 @@ contains
 
           !Bloc E inférieur
           if(j>1) then
-            X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k-My)
+            X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k-Mx)
           end if
           !Bloc E supérieur
           if (j<My) then
-            X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k+My)
+            X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k+Mx)
           end if
 
         end do
@@ -116,7 +115,6 @@ contains
   !> @warning X doit être initialisé
   !> @warning A doit être SDP ou a diagonale strictement dominante
 
-  !> @todo Adapater l'algo au système 
 
 
   subroutine Sparse_GaussSeidel(Mx,My,dx,dy,D,Dt,X,B,tol,itermax)
@@ -139,8 +137,8 @@ contains
       call matmul_implicit(Mx,My,dx,dy,D,Dt,X,AX)
       !Computes product A*X without term aii*xi
       X_next = 0
-      do i = 1, Mx
-        do j = 1, My
+      do j = 1, My
+        do i = 1, Mx
           k = Mx*(j-1) + i
           ! bloc M
           !AX(k) = (1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2))*X(k) !Terme diagonal
@@ -153,11 +151,11 @@ contains
 
           !Bloc E inférieur
           if(j>1) then
-            X_next(k)=X_next(k)-(Dt*D/dy**2)*X_next(k-My)
+            X_next(k)=X_next(k)-(Dt*D/dy**2)*X_next(k-Mx)
           end if
           !Bloc E supérieur
           if (j<My) then
-            X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k+My)
+            X_next(k)=X_next(k)-(Dt*D/dy**2)*X(k+Mx)
           end if
 
           !Xi = 1/aii (bi - Aij*xj )
@@ -215,7 +213,6 @@ contains
       l=l+1
       R=R_next
     end do
-    print*,'Convergence du GC en',l
   end subroutine Sparse_Gradconj
 
 end module

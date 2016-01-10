@@ -40,7 +40,7 @@ subroutine Get_F(F,U,Mx,My,dx,dy,D,Dt,time,voisins,nb_probleme,rank,recouv,comm_
     allocate(H1(Mx),B1(Mx),G1(My),D1(My),H2(Mx),B2(Mx),G2(My),D2(My))
 
     H1 = 0 ;   B1 = 0 ;    G1 = 0 ;    D1 = 0  
-    H2 = 4 ;   B2 = 4 ;    G2 = 4 ;    D2 = 4
+    H2 = 0 ;   B2 = 0 ;    G2 = 0 ;    D2 = 0
 
     n_x1 = map(1) ; n_xn = map(2) ; n_y1 = map(3) ; n_yn = map(4)
 
@@ -52,7 +52,6 @@ subroutine Get_F(F,U,Mx,My,dx,dy,D,Dt,time,voisins,nb_probleme,rank,recouv,comm_
        end do
     end do
 
-!! F OK
 
 !!!!!!!! COMM GAUCHE-DROITE
 
@@ -298,8 +297,8 @@ subroutine Get_F(F,U,Mx,My,dx,dy,D,Dt,time,voisins,nb_probleme,rank,recouv,comm_
     integer :: i, j, k
 
     AX=0
-    do i = 1, Nx
-       do j = 1, Ny
+    do j = 1, Ny
+       do i = 1, Nx
           k = Nx*(j-1) + i
           ! bloc M
           AX(k) = (1+2*D*Dt*(1.0_wp/dx**2 + 1.0_wp/dy**2))*X(k)
@@ -312,11 +311,11 @@ subroutine Get_F(F,U,Mx,My,dx,dy,D,Dt,time,voisins,nb_probleme,rank,recouv,comm_
 
           !Bloc E inférieur
           if(j>1) then
-             AX(k)=AX(k)-(Dt*D/dy**2)*X(k-Ny)
+             AX(k)=AX(k)-(Dt*D/dy**2)*X(k-Nx)
           end if
           !Bloc E supérieur
           if (j<Ny) then
-             AX(k)=AX(k)-(Dt*D/dy**2)*X(k+Ny)
+             AX(k)=AX(k)-(Dt*D/dy**2)*X(k+Nx)
           end if
 
        end do
