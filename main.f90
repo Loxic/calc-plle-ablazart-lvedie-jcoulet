@@ -64,7 +64,7 @@ program Chaleur_2D_Seqentiel
   Tmax=10.0
   D = 1.
   !nb_iter=100*ceiling(Tmax/dt)
-  nb_iter=40
+  nb_iter=1
 
   recouv = 0
   call map_rect(Nx,Ny,cart_dims(1),cart_dims(2),coordinates(1),coordinates(2),recouv,map)
@@ -76,10 +76,9 @@ program Chaleur_2D_Seqentiel
   Mx = Map(2) - map(1) +1
   My = Map(4) - map(3) +1
 
-  if (rank==2) then  
-    !print*,'coucou proc2'
-    !print*,Voisins
-    !print*,'t ou ?'
+  if (rank==8) then  
+    print*,'coucou proc8'
+    print*,Mx,My
     !print*,coordinates
   end if
 
@@ -94,15 +93,15 @@ program Chaleur_2D_Seqentiel
      call Get_F(F,U0,Mx,My,dx,dy,D,Dt,i*Dt,voisins,nb_probleme,rank,recouv,comm_cart,map)
      F=F+U0
      U=0
-     call Sparse_solve(3,Mx,My,dx,dy,D,Dt,U,F,0.001_wp,1000)
-  !call write_data(rank,voisins,map,nb_probleme,U,Mx,My,dx,dy,int2char(rank))
+     call Sparse_solve(1,Mx,My,dx,dy,D,Dt,U,F,0.001_wp,1000)
+  call write_data(rank,voisins,map,nb_probleme,U,Mx,My,dx,dy,int2char(rank))
 
      U0=U
   end do
   call CPU_TIME(t2)
 
 
-  call write_data(rank,voisins,map,nb_probleme,U,Mx,My,dx,dy,int2char(rank))
+  !call write_data(rank,voisins,map,nb_probleme,U,Mx,My,dx,dy,int2char(rank))
   !call save_result(U,Nx,Ny,dx,dy,"resultatseq.dat")
 
   deallocate(F,U0,U)

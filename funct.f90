@@ -62,7 +62,7 @@ subroutine Get_F(F,U,Mx,My,dx,dy,D,Dt,time,voisins,nb_probleme,rank,recouv,comm_
     if ( Voisins(3) < 0 .and. Voisins(1) < 0 ) then
        do j=n_y1,n_yn
           F(Mx*(j-n_y1)+1) = F(Mx*(j-n_y1)+1) + (D/dx**2)*fonction_h(0.0,j*dy,nb_probleme)
-          F(Mx*(j+1-n_y1) -1)  = F(Mx*(j+1-n_y1) -1)  + (D/dx**2)*fonction_h(1.,j*dy,nb_probleme)
+          F(Mx*(j+1-n_y1))  = F(Mx*(j+1-n_y1))  + (D/dx**2)*fonction_h(1.,j*dy,nb_probleme)
        end do
 
 
@@ -79,14 +79,12 @@ subroutine Get_F(F,U,Mx,My,dx,dy,D,Dt,time,voisins,nb_probleme,rank,recouv,comm_
 
        call MPI_SEND(G1,My,MPI_REAL8,voisins(1),101,comm_cart,statinfo)
        call MPI_RECV(G2,My,MPI_REAL8,voisins(1),102,comm_cart,status,statinfo)
-do i=1,My
-print*,G2(i)
-end do
+
        !call write_data3(rank,voisins,map,nb_probleme,G2,Mx,My,dx,dy,int2char(rank))
 
        do j=n_y1,n_yn
           F(Mx*(j-n_y1)+1) = F(Mx*(j-n_y1)+1) + (D/dx**2)*G2(j-n_y1 +1)
-          F(Mx*(j+1-n_y1) -1)  = F(Mx*(j+1-n_y1) -1)  + (D/dx**2)*fonction_h(1.0,j*dy,nb_probleme)
+          F(Mx*(j+1-n_y1))  = F(Mx*(j+1-n_y1))  + (D/dx**2)*fonction_h(1.0,j*dy,nb_probleme)
        end do
 
 
@@ -99,6 +97,7 @@ end do
        do j=1,My
            D1(j) = U( Mx*j -recouv)
        end do
+
        call MPI_SEND(D1,My,MPI_REAL8,voisins(3),102,comm_cart,statinfo)
        call MPI_RECV(D2,My,MPI_REAL8,voisins(3),101,comm_cart,status,statinfo)
 
@@ -106,7 +105,7 @@ end do
 
        do j=n_y1,n_yn
           F(Mx*(j-n_y1)+1)  = F(Mx*(j-n_y1)+1)  + (D/dx**2)*fonction_h(0.0,j*dy,nb_probleme)
-          F(Mx*(j+1-n_y1) -1) = F(Mx*(j+1-n_y1) -1) + (D/dx**2)*D2(j-n_y1 +1)
+          F(Mx*(j+1-n_y1) ) = F(Mx*(j+1-n_y1) ) + (D/dx**2)*D2(j-n_y1 +1)
        end do
 
 
@@ -137,7 +136,7 @@ end do
 
        do j=n_y1,n_yn
           F(Mx*(j-n_y1)+1)  = F(Mx*(j-n_y1)+1)  + (D/dx**2)*G2(j-n_y1 +1)
-          F(Mx*(j+1-n_y1) -1) = F(Mx*(j+1-n_y1) -1) + (D/dx**2)*D2(j-n_y1 +1)
+          F(Mx*(j+1-n_y1) ) = F(Mx*(j+1-n_y1) ) + (D/dx**2)*D2(j-n_y1 +1)
        end do
    end if
 
