@@ -41,7 +41,6 @@ contains
 
   subroutine map_rect(Nx,Ny,n,m,px,py,recouv,map)
     integer,intent(in)::Nx,Ny,n,m,px,py
-    integer::Mx,My
     integer,intent(in) :: recouv
     integer,dimension(4),intent(out)::map  
 
@@ -62,8 +61,8 @@ contains
   end subroutine map_rect
 
 
-  subroutine damier(rank,px,py,Np,color)
-    integer,intent(in)::rank,px,py,Np
+  subroutine damier(px,py,color)
+    integer,intent(in)::px,py
     integer,intent(out):: color
     ! généralisable facilement !
     color = mod(py+px,2)

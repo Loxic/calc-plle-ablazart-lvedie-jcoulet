@@ -14,7 +14,6 @@ contains
     character(len=*),intent(in)::fichier
     real*8,intent(in)::dx,dy
 
-    real*8::x,y
     integer::i,j
 
     open(unit=12,file=fichier)
@@ -207,12 +206,12 @@ contains
 
 
 
-  subroutine script_gnuplot(rank,Np,choix,c1,COMM_WORLD)
+  subroutine script_gnuplot(rank,Np,c1,COMM_WORLD)
 
     implicit none
     include "mpif.h"
 
-    integer,intent(in)::rank,Np,choix,c1,COMM_WORLD
+    integer,intent(in)::rank,Np,c1,COMM_WORLD
     integer :: i,p,statinfo
     integer,dimension(0:Np-1):: color_case
     character*25,dimension(0:19) :: palette

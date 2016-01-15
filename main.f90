@@ -10,10 +10,8 @@ program Chaleur_2D_Seqentiel
 
   integer::Nx,Ny,Mx,My
   real*8::Lx,Ly,D,Dt,dx,dy,Tmax,time
-  real*8,dimension(:,:),allocatable::A
-  real*8,dimension(:),allocatable::U0,U,F,B,Ubord,Ubord2
-  integer::i,j,nb_iter,nb_probleme,recouv,Ligne,Colonne,Ligne_Y,color,dumb
-  integer, dimension(MPI_STATUS_SIZE)::status
+  real*8,dimension(:),allocatable::U0,U,F,Ubord,Ubord2
+  integer::i,j,nb_iter,nb_probleme,recouv,Ligne,Colonne,Ligne_Y,color
 
   integer,dimension(4) :: map,voisins
   ! voising :  gauche haut droite bas
@@ -75,7 +73,7 @@ program Chaleur_2D_Seqentiel
 
   ! DAMIER
   color = -1
-  !call damier(rank,coordinates(1),coordinates(2),size,color)
+  !call damier(coordinates(1),coordinates(2),color)
 
   allocate(F(Mx*My),U(Mx*My),U0(Mx*My),Ubord(2*Mx+2*My),Ubord2(2*Mx+2*My))
   F=0 ; U=0; U0=0 ; time=0 ;
@@ -152,7 +150,7 @@ program Chaleur_2D_Seqentiel
   if (rank==1) then
      call script_gnu2(size,nb_probleme)
   end if
-  call script_gnuplot(rank,size,nb_probleme,color,MPI_COMM_WORLD)
+  call script_gnuplot(rank,size,color,MPI_COMM_WORLD)
 
 
   deallocate(F,U0,U)

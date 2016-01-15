@@ -204,7 +204,7 @@ contains
     !Locales
     real*8,dimension(size(K))::R,R_next,D,W
     real*8::alpha,beta
-    integer::l,i
+    integer::l
 
     !R=matmul(A,K)-B
     call matmul_implicit(Nx,Ny,dx,dy,D0,Dt,K,R)

@@ -2,7 +2,7 @@
 #
 F90 = mpif90
 LIB = 
-DEBUG_FLAG = -g -fbounds-check -fdefault-real-8
+DEBUG_FLAG = -g -fbounds-check -fdefault-real-8 -Wall
 OPTIM_FLAG = -O3 -fdefault-real-8
 USUAL_FLAG = -fdefault-real-8
 PROFIL_FLAG = -g -pg -fdefault-real-8
