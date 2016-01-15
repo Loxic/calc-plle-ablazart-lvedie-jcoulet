@@ -7,8 +7,31 @@ module display
 
 contains
 
+  subroutine save_result(U,Nx,Ny,dx,dy,fichier)
+    implicit none
+    real*8,dimension(:),intent(in)::U
+    integer,intent(in)::Nx,Ny
+    character(len=*),intent(in)::fichier
+    real*8,intent(in)::dx,dy
+
+    real*8::x,y
+    integer::i,j
+
+    open(unit=12,file=fichier)
+
+    do i=1,Nx
+       do j=1,Ny
+          write(12,*) i*dx, j*dy, U(Nx*(j-1)+i)
+       end do
+       write(12,*)''
+    end do
+
+    close(12)
+
+  end subroutine save_result
 
   function colors()
+    implicit none
     character*25,dimension(0:19) :: colors
     colors(0) = "0'blue',1'blue'"
     colors(1) = "1'#006400',2'#006400'"
