@@ -213,7 +213,7 @@ contains
 
 
 
-  subroutine Get_FB(F,Param_real,Param_int,Param_mpi)
+  subroutine Get_FB(F,Param_real,Param_int,Param_mpi,Ubord)
 
     implicit none
     include "mpif.h"
@@ -222,6 +222,7 @@ contains
     integer,dimension(7),intent(in) :: Param_int
     integer,dimension(10),intent(in) :: Param_mpi
     real*8,dimension(Param_int(1)*Param_int(2)),intent(inout):: F
+    real*8,dimension(2*Param_int(1)+2*Param_int(2)),intent(out)::Ubord
 
     integer:: Mx,My,nb_probleme,n_x1,n_xn,n_y1,n_yn
     integer,dimension(4):: voisins
@@ -263,6 +264,7 @@ contains
 
     else if (Voisins(3) < 0) then
        call MPI_RECV(G2,1,Ligne_Y,voisins(1),102,comm_cart,status,statinfo)
+       Ubord(1:My) = G2
        do j=1,My
           F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*G2(j)
           F(Mx*j)  = F(Mx*j)  + (D/dx**2)*fonction_h(1.,(j-1+n_y1)*dy,nb_probleme)
@@ -270,6 +272,7 @@ contains
 
     else if (Voisins(1) < 0) then
        call MPI_RECV(D2,1,Ligne_Y,voisins(3),101,comm_cart,status,statinfo)
+       Ubord(Mx+My+1:Mx+2*My) = D2
        do j=1,My
           F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*fonction_h(0.0,(j-1+n_y1)*dy,nb_probleme)
           F(Mx*j)  = F(Mx*j)  + (D/dx**2)*D2(j)
@@ -278,6 +281,8 @@ contains
     else
        call MPI_RECV(G2,1,Ligne_Y,voisins(1),102,comm_cart,status,statinfo)
        call MPI_RECV(D2,1,Ligne_Y,voisins(3),101,comm_cart,status,statinfo)
+       Ubord(1:My) = G2
+       Ubord(Mx+My+1:Mx+2*My) = D2
        do j=1,My
           F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*G2(j)
           F(Mx*j)  = F(Mx*j)  + (D/dx**2)*D2(j)
@@ -295,6 +300,7 @@ contains
 
     else if (Voisins(4) < 0) then
        call MPI_RECV(H2,1,Ligne,voisins(2),104,comm_cart,status,statinfo)
+       Ubord(My+1:Mx+My) = H2 
        do i=1,Mx
           F(i)  = F(i)  + (D/dy**2)*fonction_g((i-1+n_x1)*dx,0.0,nb_probleme)
           F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*H2(i)
@@ -303,6 +309,7 @@ contains
     else if (Voisins(2) < 0) then
 
        call MPI_RECV(B2,1,Ligne,voisins(4),103,comm_cart,status,statinfo)
+       Ubord(Mx+2*My+1:2*Mx+2*My) = B2
        do i=1,Mx
           F(i)  = F(i)  + (D/dy**2)*B2(i)
           F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*fonction_g((i-1+n_x1)*dx,1.,nb_probleme)
@@ -311,6 +318,8 @@ contains
     else
        call MPI_RECV(H2,1,Ligne,voisins(2),104,comm_cart,status,statinfo)
        call MPI_RECV(B2,1,Ligne,voisins(4),103,comm_cart,status,statinfo)
+       Ubord(My+1:Mx+My) = H2 
+       Ubord(Mx+2*My+1:2*Mx+2*My) = B2
        do i=1,Mx
           F(i)  = F(i)  + (D/dy**2)*B2(i)
           F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*H2(i)
@@ -422,7 +431,20 @@ contains
   end function fonction_h
 
 
-  function conv_schwartz(V,Vnext,Mx,My,tol)
+  function conv_loc(V,Vnext,Mx,My,tol)
+    implicit none
+    real*8,dimension(:),intent(in)::V,Vnext
+    integer,intent(in)::Mx,My
+    real*8,intent(in)::tol
+    logical::conv_loc
+    
+    conv_loc = ( norme2(V(1:My)-Vnext(1:My)) < tol ) .and. &
+                 ( norme2(V(My+1:My+Mx)-Vnext(My+1:My+Mx)) < tol ) .and. &
+                 ( norme2(V(Mx+My+1:Mx+2*My)-Vnext(My+Mx+1:Mx+2*My)) < tol ) .and. &
+                 ( norme2(V(2*My+Mx+1:2*(Mx+My))-Vnext(2*My+Mx+1:2*(My+Mx))) < tol ) 
+  end function
+
+ function conv_schwartz(V,Vnext,Mx,My,tol)
     implicit none
     include "mpif.h"
     real*8,dimension(:),intent(in)::V,Vnext
@@ -432,10 +454,7 @@ contains
     logical::conv_local
     integer::statinfo
     
-    conv_local = ( norme2(V(1:My)-Vnext(1:My)) < tol ) .and. &
-                 ( norme2(V(My+1:My+Mx)-Vnext(My+1:My+Mx)) < tol ) .and. &
-                 ( norme2(V(Mx+My+1:Mx+2*My)-Vnext(My+Mx+1:Mx+2*My)) < tol ) .and. &
-                 ( norme2(V(2*My+Mx+1:2*(Mx+My))-Vnext(2*My+Mx+1:2*(My+Mx))) < tol ) 
+    conv_local = conv_loc(V,Vnext,Mx,My,tol)
     call MPI_ALLREDUCE(conv_local,conv_schwartz,1,mpi_logical,MPI_LAND,mpi_comm_world,statinfo)
 
   end function

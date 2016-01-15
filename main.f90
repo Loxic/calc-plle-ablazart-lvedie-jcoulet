@@ -24,6 +24,8 @@ program Chaleur_2D_Seqentiel
   integer,dimension(7) :: Param_int
   integer,dimension(10) :: Param_mpi
 
+  logical::conv_schw_loc,conv_schw_glob
+
   cart_dims(1) = 0 ; cart_dims(2) = 0 ; cart_periods = 0
   coordinates(1) = 0 ;  coordinates(2) = 0
 
@@ -96,49 +98,55 @@ program Chaleur_2D_Seqentiel
 
 
 
-  !Boucle principale - additif
+  !Schwartz multiplicatif 
   if (color > -1) then
-     call CPU_TIME(t1)
-     do i=1,1
-        if (rank==0) then
-           print*,'Itération',i,'sur',nb_iter
+    call CPU_TIME(t1)
+    do i=1,nb_iter
+      Ubord = -5; Ubord2 = 42; j=0 ! Pour passer 1er test
+      Param_real(5) = Param_real(5) + dt
+      conv_schw_glob = .false.
+      do while ( .not. conv_schw_glob) 
+        if (color == 0) then
+          call Get_FB(F,Param_real,Param_int,Param_mpi,Ubord)
+          conv_schw_loc = conv_loc(Ubord,Ubord2,Mx,My,0.001)
+          F=F+U0
+          U=0
+          call Sparse_solve(3,Mx,My,dx,dy,D,Dt,U,F,0.001,1000)
+          U0=U
+          j = j+1
+          Ubord2 = Ubord
+        else
+          call Get_F_CL(U0,Mx,My,Param_mpi)
         end if
-        Param_real(5) = Param_real(5) + dt
-        do j = 1,1
-           if (color == 0) then
-              call Get_FB(F,Param_real,Param_int,Param_mpi)
-              F=F+U0
-              U=0
-              call Sparse_solve(3,Mx,My,dx,dy,D,Dt,U,F,0.001,1000)
-              U0=U
-           else
-              call Get_F_CL(U0,Mx,My,Param_mpi)
-           end if
-           color = merge(2,color,color==0) - 1
-
-        end do
-     end do
-     call CPU_TIME(t2)
+        color = merge(2,color,color==0) - 1
+        call MPI_ALLREDUCE(conv_schw_loc,conv_schw_glob,1,mpi_logical,MPI_LAND,mpi_comm_world,statinfo)
+      end do
+      if (rank==0) then
+        print*,'Itération',i,'sur',nb_iter,' terminé avec ',j,' sous itérations pour Schwartz multiplicatif'
+      end if
+    end do
+    call CPU_TIME(t2)
 
 
   else
+    !Schwartz Additif
      call CPU_TIME(t1)
      do i=1, nb_iter
-        Ubord = -5; Ubord2 = 42; j=0 ! Pour passer 1er test
-        Param_real(5) = Param_real(5) + dt
+       Ubord = -5; Ubord2 = 42; j=0 ! Pour passer 1er test
+       Param_real(5) = Param_real(5) + dt
 
-        do while ( .not. conv_schwartz(Ubord,Ubord2,Mx,My,0.001) )
-           Ubord = Ubord2 
-           call Get_F(F,U0,Param_real,Param_int,Param_mpi,Ubord2)
-           F=F+U0
-           U=0
-           call Sparse_solve(3,Mx,My,dx,dy,D,Dt,U,F,0.001,1000)
-           U0=U
-           j = j+1
-        end do
-        if (rank==0) then
-          print*,'Itération',i,'sur',nb_iter,' terminé avec ',j,' sous itérations pour Schwartz additif'
-        end if
+       do while ( .not. conv_schwartz(Ubord,Ubord2,Mx,My,0.001) )
+         Ubord = Ubord2 
+         call Get_F(F,U0,Param_real,Param_int,Param_mpi,Ubord2)
+         F=F+U0
+         U=0
+         call Sparse_solve(3,Mx,My,dx,dy,D,Dt,U,F,0.001,1000)
+         U0=U
+         j = j+1
+       end do
+       if (rank==0) then
+         print*,'Itération',i,'sur',nb_iter,' terminé avec ',j,' sous itérations pour Schwartz additif'
+       end if
      end do
      call CPU_TIME(t2)
 
@@ -153,7 +161,7 @@ program Chaleur_2D_Seqentiel
   call script_gnuplot(rank,size,color,MPI_COMM_WORLD)
 
 
-  deallocate(F,U0,U)
+  deallocate(F,U0,U,Ubord,Ubord2)
 
 
 
