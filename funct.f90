@@ -1,7 +1,6 @@
 module mathfunctions
   
   implicit none
-  integer,parameter::wp=8
 
 
 contains
@@ -18,7 +17,7 @@ contains
   ! 'CL' plus larges : au lieu de prendre juste l'indice du bord à côté, on en prend une tranche, et on l'inverse
 
 
-  subroutine Get_F(F,U,Param_real,Param_int,Param_mpi)
+  subroutine Get_F(F,U,Param_real,Param_int,Param_mpi,Ubord)
 
     implicit none
     include "mpif.h"
@@ -28,6 +27,7 @@ contains
     integer,dimension(10),intent(in) :: Param_mpi
     real*8,dimension(Param_int(1)*Param_int(2)),intent(in):: U
     real*8,dimension(Param_int(1)*Param_int(2)),intent(inout):: F
+    real*8,dimension(2*(Param_int(1)+Param_int(2))),intent(out)::Ubord
 
     integer:: Mx,My,nb_probleme,n_x1,n_xn,n_y1,n_yn
     integer,dimension(4):: voisins
@@ -54,6 +54,7 @@ contains
 
     H2 = 0 ;   B2 = 0 ;    G2 = 0 ;    D2 = 0
     F=0
+    Ubord = 0
 
     do j=n_y1,n_yn
        do i=n_x1,n_xn
@@ -84,6 +85,7 @@ contains
 
        call MPI_SEND(U(1+recouv),1,Colonne,voisins(1),101,comm_cart,statinfo)       
        call MPI_RECV(G2,1,Ligne_Y,voisins(1),102,comm_cart,status,statinfo)
+       Ubord(1:My) = G2
 
        do j=1,My
           F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*G2(j)
@@ -100,6 +102,7 @@ contains
 
        call MPI_SEND(U(Mx-recouv),1,Colonne,voisins(3),102,comm_cart,statinfo)
        call MPI_RECV(D2,1,Ligne_Y,voisins(3),101,comm_cart,status,statinfo)
+       Ubord(Mx+My+1:Mx+2*My) = D2
 
        do j=1,My
           F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*fonction_h(0.0,(j-1+n_y1)*dy,nb_probleme)
@@ -122,6 +125,9 @@ contains
 
        call MPI_RECV(G2,1,Ligne_Y,voisins(1),102,comm_cart,status,statinfo)
        call MPI_RECV(D2,1,Ligne_Y,voisins(3),101,comm_cart,status,statinfo)
+
+       Ubord(1:My) = G2
+       Ubord(Mx+My+1:Mx+2*My) = D2
 
        do j=1,My
           F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*G2(j)
@@ -153,6 +159,7 @@ contains
        call MPI_SEND(U(Mx*(My-1-recouv) +1),1,Ligne,voisins(2),103,comm_cart,statinfo)
        call MPI_RECV(H2,1,Ligne,voisins(2),104,comm_cart,status,statinfo)
 
+       Ubord(My+1:Mx+My) = H2 
        do i=1,Mx
           F(i)  = F(i)  + (D/dy**2)*fonction_g((i-1+n_x1)*dx,0.0,nb_probleme)
           F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*H2(i)
@@ -168,6 +175,7 @@ contains
        call MPI_SEND(U(Mx*recouv+1),1,Ligne,voisins(4),104,comm_cart,statinfo)
        call MPI_RECV(B2,1,Ligne,voisins(4),103,comm_cart,status,statinfo)
 
+       Ubord(Mx+2*My+1:2*Mx+2*My) = B2
        do i=1,Mx
           F(i)  = F(i)  + (D/dy**2)*B2(i)
           F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*fonction_g((i-1+n_x1)*dx,1.,nb_probleme)
@@ -188,6 +196,9 @@ contains
 
        call MPI_RECV(H2,1,Ligne,voisins(2),104,comm_cart,status,statinfo)
        call MPI_RECV(B2,1,Ligne,voisins(4),103,comm_cart,status,statinfo)
+
+       Ubord(My+1:Mx+My) = H2 
+       Ubord(Mx+2*My+1:2*Mx+2*My) = B2
 
        do i=1,Mx
           F(i)  = F(i)  + (D/dy**2)*B2(i)
@@ -427,7 +438,7 @@ contains
        do i = 1, Nx
           k = Nx*(j-1) + i
           ! bloc M
-          AX(k) = (1+2*D*Dt*(1.0_wp/dx**2 + 1.0_wp/dy**2))*X(k)
+          AX(k) = (1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2))*X(k)
           if (i>1) then
              AX(k) = AX(k) - (D*Dt/dx**2)*X(k-1)
           end if
@@ -474,5 +485,31 @@ contains
 
 
   end subroutine save_result
+
+  function conv_schwartz(V,Vnext,Mx,My,tol)
+    implicit none
+    include "mpif.h"
+    real*8,dimension(:),intent(in)::V,Vnext
+    integer,intent(in)::Mx,My
+    real*8,intent(in)::tol
+    logical::conv_schwartz
+    logical::conv_local
+    integer::statinfo
+    
+    conv_local = ( norme2(V(1:My)-Vnext(1:My)) < tol ) .and. &
+                 ( norme2(V(My+1:My+Mx)-Vnext(My+1:My+Mx)) < tol ) .and. &
+                 ( norme2(V(Mx+My+1:Mx+2*My)-Vnext(My+Mx+1:Mx+2*My)) < tol ) .and. &
+                 ( norme2(V(2*My+Mx+1:2*(Mx+My))-Vnext(2*My+Mx+1:2*(My+Mx))) < tol ) 
+    call MPI_ALLREDUCE(conv_local,conv_schwartz,1,mpi_logical,MPI_LAND,mpi_comm_world,statinfo)
+
+  end function
+
+function norme2(V)
+    implicit none
+    real*8,dimension(:),intent(in)::V
+    real*8::norme2
+    norme2=sqrt(dot_product(V,V))
+  end function norme2
+
 
 end module

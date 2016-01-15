@@ -11,7 +11,7 @@ program Chaleur_2D_Seqentiel
   integer::Nx,Ny,Mx,My
   real*8::Lx,Ly,D,Dt,dx,dy,Tmax,time
   real*8,dimension(:,:),allocatable::A
-  real*8,dimension(:),allocatable::U0,U,F,B
+  real*8,dimension(:),allocatable::U0,U,F,B,Ubord,Ubord2
   integer::i,j,nb_iter,nb_probleme,recouv,Ligne,Colonne,Ligne_Y,color,dumb
   integer, dimension(MPI_STATUS_SIZE)::status
 
@@ -51,7 +51,7 @@ program Chaleur_2D_Seqentiel
 
 
 
-  nb_probleme=1 !Cas à résoudre
+  nb_probleme=3 !Cas à résoudre
   !Lecture des paramètres
   !Paramètres spatiaux
   open (unit=11, file='parametres')
@@ -61,7 +61,7 @@ program Chaleur_2D_Seqentiel
   dy=Ly/(Ny+1)
   !Paramètres temporels
   Dt=1.0
-  Tmax=40.0
+  Tmax=10.0
   D = 1.
   nb_iter=ceiling(Tmax/dt) !Utile pour problème 3, sinon nb_iter = 1 car stationnaire
   !nb_iter=1
@@ -77,7 +77,7 @@ program Chaleur_2D_Seqentiel
   color = -1
   !call damier(rank,coordinates(1),coordinates(2),size,color)
 
-  allocate(F(Mx*My),U(Mx*My),U0(Mx*My))
+  allocate(F(Mx*My),U(Mx*My),U0(Mx*My),Ubord(2*Mx+2*My),Ubord2(2*Mx+2*My))
   F=0 ; U=0; U0=0 ; time=0 ;
 
   ! Création des types colonnes et lignes
@@ -111,7 +111,7 @@ program Chaleur_2D_Seqentiel
               call Get_FB(F,Param_real,Param_int,Param_mpi)
               F=F+U0
               U=0
-              call Sparse_solve(3,Mx,My,dx,dy,D,Dt,U,F,0.001_wp,1000)
+              call Sparse_solve(3,Mx,My,dx,dy,D,Dt,U,F,0.001,1000)
               U0=U
            else
               call Get_F_CL(U0,Mx,My,Param_mpi)
@@ -125,18 +125,22 @@ program Chaleur_2D_Seqentiel
 
   else
      call CPU_TIME(t1)
-     do i=1, 1
-        if (rank==0) then
-           print*,'Itération',i,'sur',nb_iter
-        end if
+     do i=1, nb_iter
+        Ubord = -5; Ubord2 = 42; j=0 ! Pour passer 1er test
         Param_real(5) = Param_real(5) + dt
-        do j = 1,10
-           call Get_F(F,U0,Param_real,Param_int,Param_mpi)
+
+        do while ( .not. conv_schwartz(Ubord,Ubord2,Mx,My,0.001) )
+           Ubord = Ubord2 
+           call Get_F(F,U0,Param_real,Param_int,Param_mpi,Ubord2)
            F=F+U0
            U=0
-           call Sparse_solve(3,Mx,My,dx,dy,D,Dt,U,F,0.001_wp,1000)
+           call Sparse_solve(3,Mx,My,dx,dy,D,Dt,U,F,0.001,1000)
            U0=U
+           j = j+1
         end do
+        if (rank==0) then
+          print*,'Itération',i,'sur',nb_iter,' terminé avec ',j,' sous itérations pour Schwartz additif'
+        end if
      end do
      call CPU_TIME(t2)
 
