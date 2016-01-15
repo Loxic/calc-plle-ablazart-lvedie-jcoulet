@@ -422,45 +422,6 @@ contains
   end function fonction_h
 
 
-  subroutine matmul_implicit(Nx,Ny,dx,dy,D,Dt,X,AX)
-
-    implicit none
-
-    integer, intent(in) :: Nx,Ny  ! dimensions spatiales du problème
-    real*8, intent(in)::dx,dy,D,Dt
-    real*8, dimension(:), intent(in) :: X ! donnee
-    real*8, dimension(:), intent(out) :: AX ! Sortie
-
-    integer :: i, j, k
-
-    AX=0
-    do j = 1, Ny
-       do i = 1, Nx
-          k = Nx*(j-1) + i
-          ! bloc M
-          AX(k) = (1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2))*X(k)
-          if (i>1) then
-             AX(k) = AX(k) - (D*Dt/dx**2)*X(k-1)
-          end if
-          if (i<Nx) then
-             AX(k) = AX(k) - (D*Dt/dx**2)*X(k+1)
-          end if
-
-          !Bloc E inférieur
-          if(j>1) then
-             AX(k)=AX(k)-(Dt*D/dy**2)*X(k-Nx)
-          end if
-          !Bloc E supérieur
-          if (j<Ny) then
-             AX(k)=AX(k)-(Dt*D/dy**2)*X(k+Nx)
-          end if
-
-       end do
-    end do
-
-  end subroutine matmul_implicit
-
-
   function conv_schwartz(V,Vnext,Mx,My,tol)
     implicit none
     include "mpif.h"

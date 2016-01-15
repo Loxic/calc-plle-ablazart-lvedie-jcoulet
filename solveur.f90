@@ -5,6 +5,16 @@ module solve
 
 contains
 
+  !> Fonction Sparse_solve
+  !! @param[in] solver Choix du solveur utilisé 
+  !! @param[in] Mx,My,dx,dy Dimensions et espacements du sous domaine
+  !! @param[in] D Paramètre de diffusion
+  !! @param[in] B Second membre du système AX=B
+  !! @param[out] X Solution du système AX=B
+  !! @param[in] tol,itermax Critères d'arrêt des méthodes itératives
+
+  !> @details Permet de choisir le solveur utilisé dans la résolution du système
+  !creux en spécifiant les critères de convergence. 
   subroutine Sparse_solve(solver,Mx,My,dx,dy,D,Dt,X,B,tol,itermax)
 
     implicit none
@@ -214,5 +224,44 @@ contains
       R=R_next
     end do
   end subroutine Sparse_Gradconj
+
+  subroutine matmul_implicit(Nx,Ny,dx,dy,D,Dt,X,AX)
+
+    implicit none
+
+    integer, intent(in) :: Nx,Ny  ! dimensions spatiales du problème
+    real*8, intent(in)::dx,dy,D,Dt
+    real*8, dimension(:), intent(in) :: X ! donnee
+    real*8, dimension(:), intent(out) :: AX ! Sortie
+
+    integer :: i, j, k
+
+    AX=0
+    do j = 1, Ny
+       do i = 1, Nx
+          k = Nx*(j-1) + i
+          ! bloc M
+          AX(k) = (1+2*D*Dt*(1.0/dx**2 + 1.0/dy**2))*X(k)
+          if (i>1) then
+             AX(k) = AX(k) - (D*Dt/dx**2)*X(k-1)
+          end if
+          if (i<Nx) then
+             AX(k) = AX(k) - (D*Dt/dx**2)*X(k+1)
+          end if
+
+          !Bloc E inférieur
+          if(j>1) then
+             AX(k)=AX(k)-(Dt*D/dy**2)*X(k-Nx)
+          end if
+          !Bloc E supérieur
+          if (j<Ny) then
+             AX(k)=AX(k)-(Dt*D/dy**2)*X(k+Nx)
+          end if
+
+       end do
+    end do
+
+  end subroutine matmul_implicit
+
 
 end module
