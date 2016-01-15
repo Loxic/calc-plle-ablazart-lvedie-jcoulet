@@ -2,15 +2,12 @@ module partition
 
   implicit none
 
-  contains
+contains
 
 
 
-
-
-
-! Partionnement en n.m maillages rectangulaires
-! Surcharge au bord
+  ! Partionnement en n.m maillages rectangulaires
+  ! Surcharge au bord
   subroutine charge(me, n, Np, i1, in)
 
     implicit none
@@ -41,27 +38,35 @@ module partition
   end subroutine charge
 
 
-subroutine map_rect(Nx,Ny,n,m,px,py,recouv,map)
-  integer,intent(in)::Nx,Ny,n,m,px,py
-  integer::Mx,My
-  integer,intent(in) :: recouv
-  integer,dimension(4),intent(out)::map  
 
-  call charge(px, Nx, n, map(1), map(2))
-  call charge(py, Ny, m, map(3), map(4))
+  subroutine map_rect(Nx,Ny,n,m,px,py,recouv,map)
+    integer,intent(in)::Nx,Ny,n,m,px,py
+    integer::Mx,My
+    integer,intent(in) :: recouv
+    integer,dimension(4),intent(out)::map  
 
-  
-! Traitement de la longueur au bord
-  if (px < n-1) then 
-    map(2) = map(2) + recouv
-  end if
-
-  if (py < m-1) then 
-    map(4) = map(4) + recouv
-  end if
+    call charge(px, Nx, n, map(1), map(2))
+    call charge(py, Ny, m, map(3), map(4))
 
 
-end subroutine map_rect
+    ! Traitement de la longueur au bord
+    if (px < n-1) then 
+       map(2) = map(2) + recouv
+    end if
+
+    if (py < m-1) then 
+       map(4) = map(4) + recouv
+    end if
 
 
-end module
+  end subroutine map_rect
+
+
+  subroutine damier(rank,px,py,Np,color)
+    integer,intent(in)::rank,px,py,Np
+    integer,intent(out):: color
+    ! généralisable facilement !
+    color = mod(py+px,2)
+  end subroutine damier
+
+end module partition
