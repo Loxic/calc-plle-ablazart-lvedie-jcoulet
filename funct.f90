@@ -56,6 +56,7 @@ contains
     F=0
     Ubord = 0
 
+!!!!!!!! MILIEU DU DOMAINE    
     do j=n_y1,n_yn
        do i=n_x1,n_xn
           F( i-n_x1 +1+ Mx*(j-n_y1) )=fonction_f(i*dx,j*dy,1.,1.,time,nb_probleme)
@@ -66,145 +67,67 @@ contains
 
 !!!!!!!! COMM GAUCHE-DROITE
 
-
-!!! Le bloc fait toute la rangée (pas de com')
-
-    if ( Voisins(3) < 0 .and. Voisins(1) < 0 ) then
-       do j=1,My
-          F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*fonction_h(0.0,(j-1+n_y1)*dy,nb_probleme)
-          F(Mx*j)  = F(Mx*j)  + (D/dx**2)*fonction_h(1.,(j-1+n_y1)*dy,nb_probleme)
-       end do
-
-
-!!! Condition de bord droit : h(1,y) + Com' à gauche
-
-    else if (Voisins(3) < 0) then
-
+    if (Voisins(1) >= 0) then
        ! Com' à gauche : Envoyer un vecteur de taille My à voisins(1)
        ! Puis récupérer le vecteur G2 de taille My de voisins(1)
-
        call MPI_SEND(U(1+recouv),1,Colonne,voisins(1),101,comm_cart,statinfo)       
        call MPI_RECV(G2,1,Ligne_Y,voisins(1),102,comm_cart,status,statinfo)
        Ubord(1:My) = G2
-
-       do j=1,My
-          F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*G2(j)
-          F(Mx*j)  = F(Mx*j)  + (D/dx**2)*fonction_h(1.,(j-1+n_y1)*dy,nb_probleme)
-       end do
-
-
-!!! Condition de bord gauche : h(0,y) + Com' à droite
-
-    else if (Voisins(1) < 0) then
-
-       ! Com' à droite : Envoyer un vecteur de taille My à voisins(3)
-       ! Puis récupérer le vecteur D2 de taille My de voisins(3)
-
-       call MPI_SEND(U(Mx-recouv),1,Colonne,voisins(3),102,comm_cart,statinfo)
-       call MPI_RECV(D2,1,Ligne_Y,voisins(3),101,comm_cart,status,statinfo)
-       Ubord(Mx+My+1:Mx+2*My) = D2
-
-       do j=1,My
-          F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*fonction_h(0.0,(j-1+n_y1)*dy,nb_probleme)
-          F(Mx*j)  = F(Mx*j)  + (D/dx**2)*D2(j)
-       end do
-
-
-!!! Milieu du maillage : full com' Gauche/droite
-
-    else
-
-       ! Com' à gauche : Envoyer un vecteur de taille My à voisins(1)
-       ! Puis récupérer le vecteur G2 de taille My de voisins(1)
-
-       ! Com' à droite : Envoyer un vecteur de taille My à voisins(3)
-       ! Puis récupérer le vecteur D2 de taille My de voisins(3)
-
-       call MPI_SEND(U(1+recouv),1,Colonne,voisins(1),101,comm_cart,statinfo)
-       call MPI_SEND(U(Mx-recouv),1,Colonne,voisins(3),102,comm_cart,statinfo)
-
-       call MPI_RECV(G2,1,Ligne_Y,voisins(1),102,comm_cart,status,statinfo)
-       call MPI_RECV(D2,1,Ligne_Y,voisins(3),101,comm_cart,status,statinfo)
-
-       Ubord(1:My) = G2
-       Ubord(Mx+My+1:Mx+2*My) = D2
-
-       do j=1,My
-          F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*G2(j)
-          F(Mx*j)  = F(Mx*j)  + (D/dx**2)*D2(j)
-       end do
+    else 
+      do j=1,My
+        G2(j) = fonction_h(1.,(j-1+n_y1)*dy,nb_probleme)
+      end do
     end if
 
+    if (Voisins(3) >= 0) then
+       ! Com' à droite : Envoyer un vecteur de taille My à voisins(3)
+       ! Puis récupérer le vecteur D2 de taille My de voisins(3)
+       call MPI_SEND(U(Mx-recouv),1,Colonne,voisins(3),102,comm_cart,statinfo)
+       call MPI_RECV(D2,1,Ligne_Y,voisins(3),101,comm_cart,status,statinfo)
+       Ubord(Mx+My+1:Mx+2*My) = D2
+    else
+       do j=1,My
+          D2(j) = fonction_h(0.0,(j-1+n_y1)*dy,nb_probleme)
+       end do
+     end if
 
+   do j=1,My
+      F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*G2(j)
+      F(Mx*j)  = F(Mx*j)  + (D/dx**2)*D2(j)
+   end do
 
 !!!!!!!! COMM HAUT-BAS
 
 
-!!! Le bloc fait toute la ligne
-
-    if ( Voisins(4) < 0 .and. Voisins(2) < 0 ) then
-       do i=1,Mx
-          F(i)  = F(i)  + (D/dy**2)*fonction_g((i-1+n_x1)*dx,0.0,nb_probleme)
-          F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*fonction_g((i-1+n_x1)*dx,1.,nb_probleme)
-       end do
-
-
-!!! Condition de bord bas : g(x,0) + Com' en haut
-
-    else if (Voisins(4) < 0) then
-
+    if (Voisins(2) >= 0) then
        ! Com' en haut : Envoyer un vecteur de taille Mx à voisins(2)
        ! Puis récupérer le vecteur H2 de taille My de voisins(2)
-
        call MPI_SEND(U(Mx*(My-1-recouv) +1),1,Ligne,voisins(2),103,comm_cart,statinfo)
        call MPI_RECV(H2,1,Ligne,voisins(2),104,comm_cart,status,statinfo)
-
        Ubord(My+1:Mx+My) = H2 
+     else
        do i=1,Mx
-          F(i)  = F(i)  + (D/dy**2)*fonction_g((i-1+n_x1)*dx,0.0,nb_probleme)
-          F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*H2(i)
-       end do
+          H2(i) = fonction_g((i-1+n_x1)*dx,1.,nb_probleme)
+        end do
+      end if
 
-
-!!! Condition de bord haut : g(x,1) + Com' en bas
-
-    else if (Voisins(2) < 0) then
+    if (Voisins(4) >= 0) then
        ! Com' EN BAS : Envoyer un vecteur de taille Mx à voisins(4)
        ! Puis récupérer le vecteur B2 de taille My de voisins(4)
-
        call MPI_SEND(U(Mx*recouv+1),1,Ligne,voisins(4),104,comm_cart,statinfo)
        call MPI_RECV(B2,1,Ligne,voisins(4),103,comm_cart,status,statinfo)
-
        Ubord(Mx+2*My+1:2*Mx+2*My) = B2
-       do i=1,Mx
-          F(i)  = F(i)  + (D/dy**2)*B2(i)
-          F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*fonction_g((i-1+n_x1)*dx,1.,nb_probleme)
-       end do
-
-!!! Milieu du maillage : full com' Haut/bas
-
     else
-
-       ! Com' en haut : Envoyer un vecteur taille Mx à voisins(2)
-       ! Puis récupérer le vecteur H2 de taille My de voisins(2)
-
-       ! Com' EN BAS : Envoyer un vecteur de taille Mx à voisins(4)
-       ! Puis récupérer le vecteur B2 de taille My de voisins(4)
-
-       call MPI_SEND(U(Mx*(My-1-recouv) +1),1,Ligne,voisins(2),103,comm_cart,statinfo)
-       call MPI_SEND(U(Mx*recouv+1),1,Ligne,voisins(4),104,comm_cart,statinfo)
-
-       call MPI_RECV(H2,1,Ligne,voisins(2),104,comm_cart,status,statinfo)
-       call MPI_RECV(B2,1,Ligne,voisins(4),103,comm_cart,status,statinfo)
-
-       Ubord(My+1:Mx+My) = H2 
-       Ubord(Mx+2*My+1:2*Mx+2*My) = B2
-
        do i=1,Mx
-          F(i)  = F(i)  + (D/dy**2)*B2(i)
-          F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*H2(i)
+          B2(i) = fonction_g((i-1+n_x1)*dx,0.0,nb_probleme)
        end do
-    end if
+     end if
+
+     do i=1,Mx
+       F(i)  = F(i)  + (D/dy**2)*B2(i)
+       F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*H2(i)
+     end do
+
 
     F=Dt*F
 
@@ -247,86 +170,68 @@ contains
     H2 = 0 ;   B2 = 0 ;    G2 = 0 ;    D2 = 0
     F=0
 
+!!!!!!!! MILIEU DU DOMAINE    
     do j=n_y1,n_yn
        do i=n_x1,n_xn
           F( i-n_x1 +1+ Mx*(j-n_y1) )=fonction_f(i*dx,j*dy,1.,1.,time,nb_probleme)
        end do
     end do
 
-
 !!!!!!!! COMM GAUCHE-DROITE
 
-    if ( Voisins(3) < 0 .and. Voisins(1) < 0 ) then
-       do j=1,My
-          F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*fonction_h(0.0,(j-1+n_y1)*dy,nb_probleme)
-          F(Mx*j)  = F(Mx*j)  + (D/dx**2)*fonction_h(1.,(j-1+n_y1)*dy,nb_probleme)
-       end do
-
-    else if (Voisins(3) < 0) then
+    if (Voisins(1) >= 0) then
+       ! Récupérer le vecteur G2 de taille My de voisins(1)
        call MPI_RECV(G2,1,Ligne_Y,voisins(1),102,comm_cart,status,statinfo)
        Ubord(1:My) = G2
-       do j=1,My
-          F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*G2(j)
-          F(Mx*j)  = F(Mx*j)  + (D/dx**2)*fonction_h(1.,(j-1+n_y1)*dy,nb_probleme)
-       end do
-
-    else if (Voisins(1) < 0) then
-       call MPI_RECV(D2,1,Ligne_Y,voisins(3),101,comm_cart,status,statinfo)
-       Ubord(Mx+My+1:Mx+2*My) = D2
-       do j=1,My
-          F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*fonction_h(0.0,(j-1+n_y1)*dy,nb_probleme)
-          F(Mx*j)  = F(Mx*j)  + (D/dx**2)*D2(j)
-       end do
-
-    else
-       call MPI_RECV(G2,1,Ligne_Y,voisins(1),102,comm_cart,status,statinfo)
-       call MPI_RECV(D2,1,Ligne_Y,voisins(3),101,comm_cart,status,statinfo)
-       Ubord(1:My) = G2
-       Ubord(Mx+My+1:Mx+2*My) = D2
-       do j=1,My
-          F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*G2(j)
-          F(Mx*j)  = F(Mx*j)  + (D/dx**2)*D2(j)
-       end do
+    else 
+      do j=1,My
+        G2(j) = fonction_h(1.,(j-1+n_y1)*dy,nb_probleme)
+      end do
     end if
 
+    if (Voisins(3) >= 0) then
+       ! Récupérer le vecteur D2 de taille My de voisins(3)
+       call MPI_RECV(D2,1,Ligne_Y,voisins(3),101,comm_cart,status,statinfo)
+       Ubord(Mx+My+1:Mx+2*My) = D2
+    else
+       do j=1,My
+          D2(j) = fonction_h(0.0,(j-1+n_y1)*dy,nb_probleme)
+       end do
+     end if
+
+   do j=1,My
+      F(Mx*(j-1)+1) = F(Mx*(j-1)+1) + (D/dx**2)*G2(j)
+      F(Mx*j)  = F(Mx*j)  + (D/dx**2)*D2(j)
+   end do
 
 !!!!!!!! COMM HAUT-BAS
 
-    if ( Voisins(4) < 0 .and. Voisins(2) < 0 ) then
-       do i=1,Mx
-          F(i)  = F(i)  + (D/dy**2)*fonction_g((i-1+n_x1)*dx,0.0,nb_probleme)
-          F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*fonction_g((i-1+n_x1)*dx,1.,nb_probleme)
-       end do
-
-    else if (Voisins(4) < 0) then
+    if (Voisins(2) >= 0) then
+       ! Récupérer le vecteur H2 de taille My de voisins(2)
        call MPI_RECV(H2,1,Ligne,voisins(2),104,comm_cart,status,statinfo)
        Ubord(My+1:Mx+My) = H2 
+     else
        do i=1,Mx
-          F(i)  = F(i)  + (D/dy**2)*fonction_g((i-1+n_x1)*dx,0.0,nb_probleme)
-          F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*H2(i)
-       end do
+          H2(i) = fonction_g((i-1+n_x1)*dx,1.,nb_probleme)
+        end do
+      end if
 
-    else if (Voisins(2) < 0) then
-
+    if (Voisins(4) >= 0) then
+       ! Récupérer le vecteur B2 de taille My de voisins(4)
        call MPI_RECV(B2,1,Ligne,voisins(4),103,comm_cart,status,statinfo)
        Ubord(Mx+2*My+1:2*Mx+2*My) = B2
-       do i=1,Mx
-          F(i)  = F(i)  + (D/dy**2)*B2(i)
-          F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*fonction_g((i-1+n_x1)*dx,1.,nb_probleme)
-       end do
-
     else
-       call MPI_RECV(H2,1,Ligne,voisins(2),104,comm_cart,status,statinfo)
-       call MPI_RECV(B2,1,Ligne,voisins(4),103,comm_cart,status,statinfo)
-       Ubord(My+1:Mx+My) = H2 
-       Ubord(Mx+2*My+1:2*Mx+2*My) = B2
        do i=1,Mx
-          F(i)  = F(i)  + (D/dy**2)*B2(i)
-          F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*H2(i)
+          B2(i) = fonction_g((i-1+n_x1)*dx,0.0,nb_probleme)
        end do
-    end if
+     end if
 
-    F=Dt*F
+     do i=1,Mx
+       F(i)  = F(i)  + (D/dy**2)*B2(i)
+       F(Mx*(My-1)+i) = F(Mx*(My-1)+i) + (D/dy**2)*H2(i)
+     end do
+
+  F = Dt*F
 
   end subroutine Get_FB
 
