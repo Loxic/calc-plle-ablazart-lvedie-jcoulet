@@ -293,6 +293,7 @@ contains
     case(3)
        fonction_f=exp(-(x-0.5*Lx)**2)*exp(-(y-0.5*Ly)**2)*cos(0.5*3.14116*t)
     case default
+       print*,'Error : unknow analytic function',nb_probleme
        fonction_f=0
     end select
   end function fonction_f

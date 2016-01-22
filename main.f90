@@ -10,6 +10,7 @@ program Chaleur_2D_Seqentiel
 
   integer::Nx,Ny,Mx,My
   real*8::Lx,Ly,D,Dt,dx,dy,Tmax,time
+  character(len=1)::choix_algo
   real*8,dimension(:),allocatable::U0,U,F,Ubord,Ubord2
   integer::i,j,nb_iter,nb_probleme,recouv,Ligne,Colonne,Ligne_Y,color
 
@@ -51,21 +52,17 @@ program Chaleur_2D_Seqentiel
 
 
 
-  nb_probleme=3 !Cas à résoudre
   !Lecture des paramètres
   !Paramètres spatiaux
   open (unit=11, file='parametres')
   read(11,*) Nx, Ny, Lx, Ly, D
+  read(11,*) Tmax, Dt
+  read(11,*) nb_probleme
+  read(11,*) recouv, choix_algo
   close(11)
   dx=Lx/(Nx+1)
   dy=Ly/(Ny+1)
-  !Paramètres temporels
-  Dt=1.0
-  Tmax=10.0
-  D = 1.
   nb_iter=ceiling(Tmax/dt) !Utile pour problème 3, sinon nb_iter = 1 car stationnaire
-  !nb_iter=1
-  recouv = 2
 
   ! mapping du domaine sur la grille des procs
   call map_rect(Nx,Ny,cart_dims(1),cart_dims(2),coordinates(1),coordinates(2),recouv,map)
@@ -75,7 +72,9 @@ program Chaleur_2D_Seqentiel
 
   ! DAMIER
   color = -1
-  !call damier(coordinates(1),coordinates(2),color)
+  if (choix_algo=='T') then
+    call damier(coordinates(1),coordinates(2),color)
+  end if
 
   allocate(F(Mx*My),U(Mx*My),U0(Mx*My),Ubord(2*Mx+2*My),Ubord2(2*Mx+2*My))
   F=0 ; U=0; U0=0 ; time=0 ;

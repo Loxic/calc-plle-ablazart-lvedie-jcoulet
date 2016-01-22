@@ -1,3 +1,9 @@
-40	30	1.0	1.0	1.0
+400	300	1.0	1.0	1.0
+10.0 1.0
+1
+5 T
 
-Ordre des paramètres : Nx,Ny,Lx,Ly,D
+1ere ligne  ->  paramètres géométriques: Nx, Ny, Lx, Ly, D
+2eme ligne  ->  paramètres temporels : Tmax, Deltat
+3eme ligne  ->  numéro du cas test à résoudre : nb_probleme
+4eme ligne  ->  résolution : recouvrement et choix de l'algo : T pour l'algo multiplicatif, F pour l'algo additif
