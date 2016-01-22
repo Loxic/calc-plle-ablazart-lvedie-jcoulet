@@ -19,7 +19,7 @@ program Chaleur_2D_Seqentiel
   integer::cart_ndims = 2
   integer,dimension(2)::cart_dims,cart_periods,coordinates
   integer:: size, rank, group, comm_cart, statinfo
-  real*8::t1,t2
+  real*8::t1,t2,texec
 
   real*8,dimension(5) :: Param_real
   integer,dimension(7) :: Param_int
@@ -100,7 +100,7 @@ program Chaleur_2D_Seqentiel
 
   !Schwartz multiplicatif 
   if (color > -1) then
-    call CPU_TIME(t1)
+    t1 = MPI_WTIME()
     do i=1,nb_iter
       Ubord = -5; Ubord2 = 42; j=0 ! Pour passer 1er test
       Param_real(5) = Param_real(5) + dt
@@ -125,12 +125,12 @@ program Chaleur_2D_Seqentiel
         print*,'Itération',i,'sur',nb_iter,' terminé avec ',j,' sous itérations pour Schwartz multiplicatif'
       end if
     end do
-    call CPU_TIME(t2)
+    t2 = MPI_WTIME()
 
 
   else
     !Schwartz Additif
-     call CPU_TIME(t1)
+     t1 = MPI_WTIME()
      do i=1, nb_iter
        Ubord = -5; Ubord2 = 42; j=0 ! Pour passer 1er test
        Param_real(5) = Param_real(5) + dt
@@ -148,7 +148,7 @@ program Chaleur_2D_Seqentiel
          print*,'Itération',i,'sur',nb_iter,' terminé avec ',j,' sous itérations pour Schwartz additif'
        end if
      end do
-     call CPU_TIME(t2)
+     t2 = MPI_WTIME()
 
   end if
 
@@ -162,10 +162,10 @@ program Chaleur_2D_Seqentiel
 
 
   deallocate(F,U0,U,Ubord,Ubord2)
-
-
-
-  !print*,"Temps d'execution : ",t2-t1
+  call MPI_Allreduce(t2-t1,texec,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD)
+  if (rank==0) then
+    print*,"Temps de calcul : ",texec
+  end if
 
   call MPI_FINALIZE(statinfo)
 
