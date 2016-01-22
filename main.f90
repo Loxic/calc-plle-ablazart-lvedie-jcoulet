@@ -8,8 +8,8 @@ program Chaleur_2D_Seqentiel
   implicit none
   include "mpif.h"
 
-  integer::Nx,Ny,Mx,My
-  real*8::Lx,Ly,D,Dt,dx,dy,Tmax,time
+  integer::Nx,Ny,Mx,My,choix_solveur,itermax
+  real*8::Lx,Ly,D,Dt,dx,dy,Tmax,time,tolschw,tolsolv
   character(len=1)::choix_algo
   real*8,dimension(:),allocatable::U0,U,F,Ubord,Ubord2
   integer::i,j,nb_iter,nb_probleme,recouv,Ligne,Colonne,Ligne_Y,color
@@ -58,7 +58,8 @@ program Chaleur_2D_Seqentiel
   read(11,*) Nx, Ny, Lx, Ly, D
   read(11,*) Tmax, Dt
   read(11,*) nb_probleme
-  read(11,*) recouv, choix_algo
+  read(11,*) recouv, choix_algo, tolschw
+  read(11,*) choix_solveur, tolsolv, itermax
   close(11)
   dx=Lx/(Nx+1)
   dy=Ly/(Ny+1)
@@ -107,10 +108,10 @@ program Chaleur_2D_Seqentiel
       do while ( .not. conv_schw_glob) 
         if (color == 0) then
           call Get_FB(F,Param_real,Param_int,Param_mpi,Ubord)
-          conv_schw_loc = conv_loc(Ubord,Ubord2,Mx,My,0.001)
+          conv_schw_loc = conv_loc(Ubord,Ubord2,Mx,My,tolschw)
           F=F+U0
           U=0
-          call Sparse_solve(3,Mx,My,dx,dy,D,Dt,U,F,0.001,1000)
+          call Sparse_solve(choix_solveur,Mx,My,dx,dy,D,Dt,U,F,tolsolv,itermax)
           U0=U
           j = j+1
           Ubord2 = Ubord
@@ -134,12 +135,12 @@ program Chaleur_2D_Seqentiel
        Ubord = -5; Ubord2 = 42; j=0 ! Pour passer 1er test
        Param_real(5) = Param_real(5) + dt
 
-       do while ( .not. conv_schwartz(Ubord,Ubord2,Mx,My,0.001) )
+       do while ( .not. conv_schwartz(Ubord,Ubord2,Mx,My,tolschw) )
          Ubord = Ubord2 
          call Get_F(F,U0,Param_real,Param_int,Param_mpi,Ubord2)
          F=F+U0
          U=0
-         call Sparse_solve(3,Mx,My,dx,dy,D,Dt,U,F,0.001,1000)
+         call Sparse_solve(choix_solveur,Mx,My,dx,dy,D,Dt,U,F,tolsolv,itermax)
          U0=U
          j = j+1
        end do
