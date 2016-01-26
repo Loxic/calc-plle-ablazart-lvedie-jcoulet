@@ -1,5 +1,5 @@
-40	90	1.0	1.0	1.0
-10.0 1.0
+90	90	1.0	1.0	1.0
+1.0 1.0
 1
 2 F 1e-3
 3 0.001 1000
@@ -9,3 +9,5 @@
 3eme ligne  ->  numéro du cas test à résoudre : nb_probleme
 4eme ligne  ->  décomposition : recouvrement et choix de l'algo : T pour l'algo multiplicatif, F pour l'algo additif, tolérance des algo de Schwarz
 5eme ligne  ->  paramètres solveur (Jocobi=1 / GaussSeidel=2 / GradConj=3), tolérance, itérations max
+
+
