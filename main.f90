@@ -19,7 +19,10 @@ program Chaleur_2D_Seqentiel
   integer::cart_ndims = 2
   integer,dimension(2)::cart_dims,cart_periods,coordinates
   integer:: size, rank, group, comm_cart, statinfo
-  double precision::t1,t2,texec
+
+  integer:: ti,tf,tcount
+  character(10):: string
+  real*8::texec
 
   real*8,dimension(5) :: Param_real
   integer,dimension(7) :: Param_int
@@ -100,7 +103,7 @@ program Chaleur_2D_Seqentiel
 
   !Schwartz multiplicatif 
   if (color > -1) then
-    t1 = MPI_WTIME()
+    call system_clock(ti,tcount)
     do i=1,nb_iter
       Ubord = -5; Ubord2 = 42; j=0 ! Pour passer 1er test
       Param_real(5) = Param_real(5) + dt
@@ -122,15 +125,14 @@ program Chaleur_2D_Seqentiel
         call MPI_ALLREDUCE(conv_schw_loc,conv_schw_glob,1,mpi_logical,MPI_LAND,mpi_comm_world,statinfo)
       end do
       if (rank==0) then
-        print*,'Itération',i,'sur',nb_iter,' terminé avec ',j,' sous itérations pour Schwartz multiplicatif'
+!        print*,'Itération',i,'sur',nb_iter,' terminé avec ',j,' sous itérations pour Schwartz multiplicatif'
       end if
     end do
-    t2 = MPI_WTIME()
-
+    call system_clock(tf)
 
   else
     !Schwartz Additif
-     t1 = MPI_WTIME()
+     call system_clock(ti,tcount)
      do i=1, nb_iter
        Ubord = -5; Ubord2 = 42; j=0 ! Pour passer 1er test
        Param_real(5) = Param_real(5) + dt
@@ -145,10 +147,10 @@ program Chaleur_2D_Seqentiel
          j = j+1
        end do
        if (rank==0) then
-         print*,'Itération',i,'sur',nb_iter,' terminé avec ',j,' sous itérations pour Schwartz additif'
+!         print*,'Itération',i,'sur',nb_iter,' terminé avec ',j,' sous itérations pour Schwartz additif'
        end if
      end do
-     t2 = MPI_WTIME()
+     call system_clock(tf)
 
   end if
 
@@ -160,11 +162,22 @@ program Chaleur_2D_Seqentiel
   end if
   call script_gnuplot(rank,size,color,MPI_COMM_WORLD)
 
-
   deallocate(F,U0,U,Ubord,Ubord2)
-  call MPI_Allreduce(t2-t1,texec,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD)
+  texec=REAL(tf-ti)/REAL(tcount)
+
+
+  call MPI_Allreduce(texec,texec,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD)
   if (rank==0) then
-    print*,"Temps de calcul : ",texec
+     if(texec <= 10.0) then
+        write(string,'(f5.3)') texec
+     end if
+     if(texec > 10.0 .AND. texec <= 100.0) then
+        write(string,'(f6.3)') texec
+     end if
+     if(texec > 100.0) then
+        write(string,'(f10.3)') texec
+     end if
+     print'(a)',string
   end if
 
   call MPI_FINALIZE(statinfo)
