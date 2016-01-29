@@ -19,7 +19,7 @@ program Chaleur_2D_Seqentiel
   integer::cart_ndims = 2
   integer,dimension(2)::cart_dims,cart_periods,coordinates
   integer:: size, rank, group, comm_cart, statinfo
-  real*8::t1,t2,texec
+  double precision::t1,t2,texec
 
   real*8,dimension(5) :: Param_real
   integer,dimension(7) :: Param_int
